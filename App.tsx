@@ -6,14 +6,18 @@ import { GameScreen } from './src/screens/GameScreen';
 import { ERSScreen } from './src/screens/ERSScreen';
 import { UnoScreen } from './src/screens/UnoScreen';
 import { Phase10Screen } from './src/screens/Phase10Screen';
+import { CustomGameCreatorScreen } from './src/screens/CustomGameCreatorScreen';
+import { CustomGameScreen } from './src/screens/CustomGameScreen';
+import { GameTemplate } from './src/types/customGame';
 
-type GameType = 'war' | 'ers' | 'uno' | 'phase10' | null;
+type GameType = 'war' | 'ers' | 'uno' | 'phase10' | 'custom' | null;
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<'menu' | 'game'>('menu');
+  const [currentScreen, setCurrentScreen] = useState<'menu' | 'game' | 'custom-creator'>('menu');
   const [gameId, setGameId] = useState<string | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [gameType, setGameType] = useState<GameType>(null);
+  const [customTemplate, setCustomTemplate] = useState<GameTemplate | null>(null);
 
   const handleStartGame = (id: string, pId: string, type: GameType) => {
     setGameId(id);
@@ -27,15 +31,40 @@ export default function App() {
     setGameId(null);
     setPlayerId(null);
     setGameType(null);
+    setCustomTemplate(null);
+  };
+
+  const handleOpenCustomCreator = () => {
+    setCurrentScreen('custom-creator');
+  };
+
+  const handleStartCustomGame = (template: GameTemplate) => {
+    setGameId(`custom_${Date.now()}`);
+    setPlayerId(`player_${Date.now()}`);
+    setGameType('custom');
+    setCustomTemplate(template);
+    setCurrentScreen('game');
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
       {currentScreen === 'menu' ? (
-        <MenuScreen onStartGame={handleStartGame} />
+        <MenuScreen onStartGame={handleStartGame} onOpenCustomCreator={handleOpenCustomCreator} />
+      ) : currentScreen === 'custom-creator' ? (
+        <CustomGameCreatorScreen
+          onStartCustomGame={handleStartCustomGame}
+          onExit={handleExitGame}
+        />
       ) : gameId && playerId ? (
-        gameType === 'uno' ? (
+        gameType === 'custom' && customTemplate ? (
+          <CustomGameScreen
+            gameId={gameId}
+            playerId={playerId}
+            template={customTemplate}
+            onExit={handleExitGame}
+          />
+        ) : gameType === 'uno' ? (
           <UnoScreen gameId={gameId} playerId={playerId} onExit={handleExitGame} />
         ) : gameType === 'phase10' ? (
           <Phase10Screen gameId={gameId} playerId={playerId} onExit={handleExitGame} />

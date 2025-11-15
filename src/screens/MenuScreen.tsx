@@ -25,9 +25,10 @@ import { database } from '../config/firebase';
 
 interface MenuScreenProps {
   onStartGame: (gameId: string, playerId: string, gameType: 'war' | 'ers' | 'uno' | 'phase10') => void;
+  onOpenCustomCreator: () => void;
 }
 
-export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
+export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCustomCreator }) => {
   const [playerName, setPlayerName] = useState('');
   const [playerId] = useState(`player_${Date.now()}`);
   const [pushToken, setPushToken] = useState<string>();
@@ -160,6 +161,14 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
         </View>
 
         <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={[styles.gameButton, styles.customButton]}
+            onPress={onOpenCustomCreator}
+          >
+            <Text style={styles.gameButtonTitle}>🎲 CUSTOM GAMES</Text>
+            <Text style={styles.gameButtonSubtitle}>Create your own rules!</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={[styles.gameButton, styles.unoButton]}
             onPress={() => setShowUnoMenu(true)}
@@ -474,6 +483,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
+  },
+  customButton: {
+    backgroundColor: '#10B981',
   },
   unoButton: {
     backgroundColor: '#3B82F6',
