@@ -4,6 +4,9 @@ export interface ERSGameState {
   id: string;
   player1: Player;
   player2: Player | null;
+  player3?: Player | null;
+  player4?: Player | null;
+  playerCount: number; // 2, 3, or 4
   pile: Card[];
   currentTurn: string;
   gameStatus: 'waiting' | 'playing' | 'finished';

@@ -19,20 +19,33 @@ import {
   checkRoundWinner,
   getCurrentPhase,
 } from '../utils/phase10Logic';
+import { saveGame } from '../utils/gameSaveService';
 
 interface Phase10ScreenProps {
   gameId: string;
   playerId: string;
+  playerCount?: number;
+  resumeState?: Phase10GameState;
   onExit: () => void;
 }
 
-export const Phase10Screen: React.FC<Phase10ScreenProps> = ({ gameId, playerId, onExit }) => {
-  const [gameState, setGameState] = useState<Phase10GameState | null>(null);
+export const Phase10Screen: React.FC<Phase10ScreenProps> = ({ gameId, playerId, playerCount = 2, resumeState, onExit }) => {
+  const [gameState, setGameState] = useState<Phase10GameState | null>(resumeState || null);
   const [selectedCards, setSelectedCards] = useState<Phase10Card[]>([]);
   const [hasDrawn, setHasDrawn] = useState(false);
   const [sortBy, setSortBy] = useState<'none' | 'color' | 'number'>('none');
 
+  const handleExitWithSave = async () => {
+    if (gameState && gameState.gameStatus === 'playing') {
+      await saveGame('phase10', gameState, playerCount);
+    }
+    onExit();
+  };
+
   useEffect(() => {
+    // Skip initialization if we're resuming from saved state
+    if (resumeState) return;
+
     // Initialize local game
     const deck = shufflePhase10Deck(createPhase10Deck());
     const { player1Hand, player2Hand, remaining } = dealPhase10Cards(deck);
@@ -253,14 +266,14 @@ export const Phase10Screen: React.FC<Phase10ScreenProps> = ({ gameId, playerId, 
     // Check if someone completed Phase 10
     if (newPlayer1.currentPhase > 10) {
       Alert.alert('Game Over!', `${newPlayer1.name} completed all 10 phases and wins!`, [
-        { text: 'OK', onPress: onExit },
+        { text: 'OK', onPress: handleExitWithSave },
       ]);
       return;
     }
 
     if (newPlayer2.currentPhase > 10) {
       Alert.alert('Game Over!', `${newPlayer2.name} completed all 10 phases and wins!`, [
-        { text: 'OK', onPress: onExit },
+        { text: 'OK', onPress: handleExitWithSave },
       ]);
       return;
     }
@@ -344,7 +357,7 @@ export const Phase10Screen: React.FC<Phase10ScreenProps> = ({ gameId, playerId, 
     <LinearGradient colors={['#0F172A', '#1E293B', '#334155']} style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.exitButton} onPress={onExit}>
+        <TouchableOpacity style={styles.exitButton} onPress={handleExitWithSave}>
           <Text style={styles.exitButtonText}>Exit</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Phase 10</Text>

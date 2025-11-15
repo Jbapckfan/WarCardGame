@@ -20,20 +20,33 @@ import {
   reshuffleDiscardPile,
   checkWinner,
 } from '../utils/unoLogic';
+import { saveGame } from '../utils/gameSaveService';
 
 interface UnoScreenProps {
   gameId: string;
   playerId: string;
+  playerCount?: number;
+  resumeState?: UnoGameState;
   onExit: () => void;
 }
 
-export const UnoScreen: React.FC<UnoScreenProps> = ({ gameId, playerId, onExit }) => {
-  const [gameState, setGameState] = useState<UnoGameState | null>(null);
+export const UnoScreen: React.FC<UnoScreenProps> = ({ gameId, playerId, playerCount = 2, resumeState, onExit }) => {
+  const [gameState, setGameState] = useState<UnoGameState | null>(resumeState || null);
   const [selectedCard, setSelectedCard] = useState<UnoCard | null>(null);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showUnoButton, setShowUnoButton] = useState(false);
 
+  const handleExitWithSave = async () => {
+    if (gameState && gameState.gameStatus === 'playing') {
+      await saveGame('uno', gameState, playerCount);
+    }
+    onExit();
+  };
+
   useEffect(() => {
+    // Skip initialization if we're resuming from saved state
+    if (resumeState) return;
+
     // Initialize local game
     const deck = shuffleUnoDeck(createUnoDeck());
     const { player1Hand, player2Hand, remaining } = dealUnoCards(deck);
@@ -92,7 +105,7 @@ export const UnoScreen: React.FC<UnoScreenProps> = ({ gameId, playerId, onExit }
     if (winnerId && gameState.gameStatus === 'playing') {
       const winnerName = winnerId === gameState.player1.id ? gameState.player1.name : gameState.player2!.name;
       setGameState({ ...gameState, winner: winnerId, gameStatus: 'finished' });
-      Alert.alert('Game Over!', `${winnerName} wins!`, [{ text: 'OK', onPress: onExit }]);
+      Alert.alert('Game Over!', `${winnerName} wins!`, [{ text: 'OK', onPress: handleExitWithSave }]);
     }
 
     // AI turn
@@ -277,7 +290,7 @@ export const UnoScreen: React.FC<UnoScreenProps> = ({ gameId, playerId, onExit }
     <LinearGradient colors={['#1E3A8A', '#3730A3', '#581C87']} style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.exitButton} onPress={onExit}>
+        <TouchableOpacity style={styles.exitButton} onPress={handleExitWithSave}>
           <Text style={styles.exitButtonText}>Exit</Text>
         </TouchableOpacity>
         <Text style={styles.title}>UNO</Text>

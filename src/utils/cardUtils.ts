@@ -32,6 +32,14 @@ export const splitDeck = (deck: Card[]): [Card[], Card[]] => {
   return [deck.slice(0, mid), deck.slice(mid)];
 };
 
+export const splitDeckMultiple = (deck: Card[], numPlayers: number): Card[][] => {
+  const decks: Card[][] = Array.from({ length: numPlayers }, () => []);
+  deck.forEach((card, index) => {
+    decks[index % numPlayers].push(card);
+  });
+  return decks;
+};
+
 export const getRankName = (rank: Rank): string => {
   switch (rank) {
     case 11: return 'J';

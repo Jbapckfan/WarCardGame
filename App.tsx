@@ -7,12 +7,13 @@ import { GameScreen } from './src/screens/GameScreen';
 import { ERSScreen } from './src/screens/ERSScreen';
 import { UnoScreen } from './src/screens/UnoScreen';
 import { Phase10Screen } from './src/screens/Phase10Screen';
+import { KingsCornersScreen } from './src/screens/KingsCornersScreen';
 import { CustomGameCreatorScreen } from './src/screens/CustomGameCreatorScreen';
 import { CustomGameScreen } from './src/screens/CustomGameScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { GameTemplate } from './src/types/customGame';
 
-type GameType = 'war' | 'ers' | 'uno' | 'phase10' | 'custom' | null;
+type GameType = 'war' | 'ers' | 'uno' | 'phase10' | 'kings' | 'custom' | null;
 
 function AppContent() {
   const { theme } = useTheme();
@@ -87,6 +88,8 @@ function AppContent() {
           <UnoScreen gameId={gameId} playerId={playerId} playerCount={playerCount} resumeState={resumeState} onExit={handleExitGame} />
         ) : gameType === 'phase10' ? (
           <Phase10Screen gameId={gameId} playerId={playerId} playerCount={playerCount} resumeState={resumeState} onExit={handleExitGame} />
+        ) : gameType === 'kings' ? (
+          <KingsCornersScreen gameId={gameId} playerId={playerId} playerCount={playerCount} resumeState={resumeState} onExit={handleExitGame} />
         ) : gameType === 'ers' ? (
           <ERSScreen gameId={gameId} playerId={playerId} playerCount={playerCount} resumeState={resumeState} onExit={handleExitGame} />
         ) : (

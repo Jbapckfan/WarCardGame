@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface SavedGame {
-  gameType: 'war' | 'ers' | 'uno' | 'phase10' | 'custom';
+  gameType: 'war' | 'ers' | 'uno' | 'phase10' | 'kings' | 'custom';
   gameState: any;
   playerCount: number;
   savedAt: number;
@@ -12,6 +12,7 @@ const SAVE_KEYS = {
   ers: '@game_save_ers',
   uno: '@game_save_uno',
   phase10: '@game_save_phase10',
+  kings: '@game_save_kings',
   custom: '@game_save_custom',
 };
 
@@ -19,7 +20,7 @@ const SAVE_KEYS = {
  * Save game state to AsyncStorage
  */
 export const saveGame = async (
-  gameType: 'war' | 'ers' | 'uno' | 'phase10' | 'custom',
+  gameType: 'war' | 'ers' | 'uno' | 'phase10' | 'kings' | 'custom',
   gameState: any,
   playerCount: number
 ): Promise<void> => {
@@ -40,7 +41,7 @@ export const saveGame = async (
  * Load saved game state from AsyncStorage
  */
 export const loadGame = async (
-  gameType: 'war' | 'ers' | 'uno' | 'phase10' | 'custom'
+  gameType: 'war' | 'ers' | 'uno' | 'phase10' | 'kings' | 'custom'
 ): Promise<SavedGame | null> => {
   try {
     const saved = await AsyncStorage.getItem(SAVE_KEYS[gameType]);
@@ -58,7 +59,7 @@ export const loadGame = async (
  * Clear saved game state
  */
 export const clearSavedGame = async (
-  gameType: 'war' | 'ers' | 'uno' | 'phase10' | 'custom'
+  gameType: 'war' | 'ers' | 'uno' | 'phase10' | 'kings' | 'custom'
 ): Promise<void> => {
   try {
     await AsyncStorage.removeItem(SAVE_KEYS[gameType]);
@@ -71,7 +72,7 @@ export const clearSavedGame = async (
  * Check if a saved game exists
  */
 export const hasSavedGame = async (
-  gameType: 'war' | 'ers' | 'uno' | 'phase10' | 'custom'
+  gameType: 'war' | 'ers' | 'uno' | 'phase10' | 'kings' | 'custom'
 ): Promise<boolean> => {
   try {
     const saved = await AsyncStorage.getItem(SAVE_KEYS[gameType]);

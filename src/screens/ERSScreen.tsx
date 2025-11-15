@@ -27,15 +27,18 @@ import {
   formatSlapRules,
   isFaceCard,
 } from '../utils/ersLogic';
+import { saveGame } from '../utils/gameSaveService';
 
 interface ERSScreenProps {
   gameId: string;
   playerId: string;
+  playerCount?: number;
+  resumeState?: ERSGameState;
   onExit: () => void;
 }
 
-export const ERSScreen: React.FC<ERSScreenProps> = ({ gameId, playerId, onExit }) => {
-  const [gameState, setGameState] = useState<ERSGameState | null>(null);
+export const ERSScreen: React.FC<ERSScreenProps> = ({ gameId, playerId, playerCount = 2, resumeState, onExit }) => {
+  const [gameState, setGameState] = useState<ERSGameState | null>(resumeState || null);
   const [canPlay, setCanPlay] = useState(false);
   const [slapFeedback, setSlapFeedback] = useState<string>('');
   const [lastCardPlayedTime, setLastCardPlayedTime] = useState<number | null>(null);
@@ -75,29 +78,43 @@ export const ERSScreen: React.FC<ERSScreenProps> = ({ gameId, playerId, onExit }
     loadFastestSlap();
   }, []);
 
-  // Mock game state for demonstration
+  // Initialize game state for demonstration
   useEffect(() => {
+    // Skip initialization if we're resuming from saved state
+    if (resumeState) return;
+
     // Import card utilities
-    import('../utils/cardUtils').then(({ createDeck, shuffleDeck, splitDeck }) => {
+    import('../utils/cardUtils').then(({ createDeck, shuffleDeck, splitDeckMultiple }) => {
       const deck = shuffleDeck(createDeck());
-      const [player1Deck, player2Deck] = splitDeck(deck);
+      const playerDecks = splitDeckMultiple(deck, playerCount);
 
       const mockState: ERSGameState = {
         id: gameId,
         player1: {
           id: playerId,
-          name: 'You',
-          deck: player1Deck,
+          name: 'Player 1',
+          deck: playerDecks[0],
         },
         player2: {
-          id: 'opponent',
-          name: 'AI',
-          deck: player2Deck,
+          id: 'player2',
+          name: 'Player 2',
+          deck: playerDecks[1],
         },
+        player3: playerCount >= 3 ? {
+          id: 'player3',
+          name: 'Player 3',
+          deck: playerDecks[2],
+        } : null,
+        player4: playerCount >= 4 ? {
+          id: 'player4',
+          name: 'Player 4',
+          deck: playerDecks[3],
+        } : null,
+        playerCount,
         pile: [],
         currentTurn: playerId,
         gameStatus: 'playing',
-        lastAction: 'Game started',
+        lastAction: 'Game started - pass device to play!',
         lastActionTime: Date.now(),
         winner: null,
         faceCardChallenge: null,
@@ -108,11 +125,15 @@ export const ERSScreen: React.FC<ERSScreenProps> = ({ gameId, playerId, onExit }
     });
   }, []);
 
-  // AI opponent plays automatically
+  // AI opponent plays automatically (only for single-player AI mode)
   useEffect(() => {
     if (!gameState || gameState.gameStatus !== 'playing') return;
 
-    const isAITurn = gameState.currentTurn === 'opponent';
+    // Only use AI logic for legacy 2-player AI mode
+    const isAIPlayer = gameState.player2?.id === 'opponent' || gameState.player2?.id === 'ai_player';
+    if (!isAIPlayer || gameState.playerCount > 2) return;
+
+    const isAITurn = gameState.currentTurn === 'opponent' || gameState.currentTurn === 'ai_player';
     if (!isAITurn) return;
 
     // AI plays after a delay to allow player time to slap
@@ -227,24 +248,59 @@ export const ERSScreen: React.FC<ERSScreenProps> = ({ gameId, playerId, onExit }
     return () => clearTimeout(aiTimeout);
   }, [gameState?.currentTurn, gameState?.gameStatus, gameState?.faceCardChallenge?.remainingCards]);
 
+  const handleExitWithSave = async () => {
+    if (gameState && gameState.gameStatus === 'playing') {
+      await saveGame('ers', gameState, playerCount);
+    }
+    onExit();
+  };
+
+  // Helper to get all players
+  const getAllPlayers = (state: ERSGameState) => {
+    const players = [state.player1, state.player2];
+    if (state.player3) players.push(state.player3);
+    if (state.player4) players.push(state.player4);
+    return players.filter(p => p !== null);
+  };
+
+  // Helper to get next player ID
+  const getNextPlayerId = (state: ERSGameState, currentId: string) => {
+    const players = getAllPlayers(state);
+    const currentIndex = players.findIndex(p => p.id === currentId);
+    const nextIndex = (currentIndex + 1) % players.length;
+    return players[nextIndex].id;
+  };
+
+  // Helper to get player by ID
+  const getPlayerById = (state: ERSGameState, playerId: string) => {
+    if (state.player1.id === playerId) return state.player1;
+    if (state.player2?.id === playerId) return state.player2;
+    if (state.player3?.id === playerId) return state.player3;
+    if (state.player4?.id === playerId) return state.player4;
+    return null;
+  };
+
+  // Helper to get current player
+  const getCurrentPlayer = (state: ERSGameState) => {
+    return getPlayerById(state, state.currentTurn);
+  };
+
   if (!gameState || !gameState.player2) {
     return (
       <View style={styles.container}>
         <Text style={styles.waitingText}>Waiting for opponent...</Text>
-        <TouchableOpacity style={styles.exitButton} onPress={onExit}>
+        <TouchableOpacity style={styles.exitButton} onPress={handleExitWithSave}>
           <Text style={styles.buttonText}>Exit</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  const isPlayer1 = gameState.player1.id === playerId;
-  const currentPlayer = isPlayer1 ? gameState.player1 : gameState.player2;
-  const opponent = isPlayer1 ? gameState.player2 : gameState.player1;
+  const currentPlayer = getCurrentPlayer(gameState);
   const isMyTurn = gameState.currentTurn === playerId;
 
   const handlePlayCard = () => {
-    if (!isMyTurn || currentPlayer.deck.length === 0) return;
+    if (!currentPlayer || currentPlayer.deck.length === 0) return;
 
     const card = currentPlayer.deck[0];
     const newPile = [...gameState.pile, card];
@@ -260,52 +316,60 @@ export const ERSScreen: React.FC<ERSScreenProps> = ({ gameId, playerId, onExit }
     const faceCardValue = shouldStartFaceCardChallenge(card);
 
     // Determine next turn based on face card challenge
-    let nextTurn = opponent.id; // Default to opponent's turn
+    let nextTurn = getNextPlayerId(gameState, gameState.currentTurn);
     let newFaceCardChallenge = null;
 
     if (faceCardValue > 0) {
-      // Player just played a face card, opponent must respond
+      // Current player just played a face card, next player must respond
       newFaceCardChallenge = {
         active: true,
         cardsToPlay: faceCardValue,
         remainingCards: faceCardValue,
-        challenger: playerId,
+        challenger: currentPlayer.id,
       };
-      nextTurn = opponent.id;
+      nextTurn = getNextPlayerId(gameState, currentPlayer.id);
     } else if (gameState.faceCardChallenge) {
-      // Player is responding to a face card challenge
+      // Current player is responding to a face card challenge
       const remainingCards = gameState.faceCardChallenge.remainingCards - 1;
       if (remainingCards > 0) {
-        // Challenge continues, player plays again
+        // Challenge continues, current player plays again
         newFaceCardChallenge = {
           ...gameState.faceCardChallenge,
           remainingCards,
         };
-        nextTurn = playerId;
+        nextTurn = currentPlayer.id;
       } else {
         // Challenge complete, will be handled below
         newFaceCardChallenge = {
           ...gameState.faceCardChallenge,
           remainingCards: 0,
         };
-        nextTurn = opponent.id;
+        nextTurn = getNextPlayerId(gameState, currentPlayer.id);
       }
     }
 
     const now = Date.now();
-    const updatedState: ERSGameState = {
-      ...gameState,
-      pile: newPile,
-      [isPlayer1 ? 'player1' : 'player2']: {
-        ...currentPlayer,
-        deck: newDeck,
-      },
-      currentTurn: nextTurn,
-      lastAction: `${currentPlayer.name} played ${card.rank}`,
-      lastActionTime: now,
-      faceCardChallenge: newFaceCardChallenge,
-      canSlap: checkValidSlap(newPile).valid,
-    };
+
+    // Update the specific player's deck
+    const updatedState: ERSGameState = { ...gameState };
+    const updatedPlayer = { ...currentPlayer, deck: newDeck };
+
+    if (currentPlayer.id === gameState.player1.id) {
+      updatedState.player1 = updatedPlayer;
+    } else if (currentPlayer.id === gameState.player2?.id) {
+      updatedState.player2 = updatedPlayer;
+    } else if (currentPlayer.id === gameState.player3?.id) {
+      updatedState.player3 = updatedPlayer;
+    } else if (currentPlayer.id === gameState.player4?.id) {
+      updatedState.player4 = updatedPlayer;
+    }
+
+    updatedState.pile = newPile;
+    updatedState.currentTurn = nextTurn;
+    updatedState.lastAction = `${currentPlayer.name} played ${card.rank}`;
+    updatedState.lastActionTime = now;
+    updatedState.faceCardChallenge = newFaceCardChallenge;
+    updatedState.canSlap = checkValidSlap(newPile).valid;
 
     setGameState(updatedState);
     setLastCardPlayedTime(now);
@@ -520,10 +584,25 @@ export const ERSScreen: React.FC<ERSScreenProps> = ({ gameId, playerId, onExit }
         <Text style={styles.subtitle}>Slap fast, win cards!</Text>
       </View>
 
-      {/* Opponent Info */}
-      <View style={styles.playerSection}>
-        <Text style={styles.playerName}>{opponent.name}</Text>
-        <Text style={styles.deckCount}>Cards: {opponent.deck.length}</Text>
+      {/* All Players Info */}
+      <View style={styles.allPlayersSection}>
+        {getAllPlayers(gameState).map((player) => (
+          <View
+            key={player.id}
+            style={[
+              styles.playerCard,
+              player.id === gameState.currentTurn && styles.playerCardActive,
+            ]}
+          >
+            <Text style={[
+              styles.playerCardName,
+              player.id === gameState.currentTurn && styles.playerCardNameActive
+            ]}>
+              {player.name} {player.id === playerId && '(You)'}
+            </Text>
+            <Text style={styles.playerCardCount}>{player.deck.length} cards</Text>
+          </View>
+        ))}
       </View>
 
       {/* Pile */}
@@ -599,12 +678,6 @@ export const ERSScreen: React.FC<ERSScreenProps> = ({ gameId, playerId, onExit }
         )}
       </View>
 
-      {/* Current Player Info */}
-      <View style={styles.playerSection}>
-        <Text style={styles.playerName}>{currentPlayer.name} (You)</Text>
-        <Text style={styles.deckCount}>Cards: {currentPlayer.deck.length}</Text>
-      </View>
-
       {/* Action Buttons */}
       <View style={styles.actionButtons}>
         <TouchableOpacity
@@ -613,7 +686,7 @@ export const ERSScreen: React.FC<ERSScreenProps> = ({ gameId, playerId, onExit }
           disabled={!isMyTurn}
         >
           <Text style={styles.playButtonText}>
-            {isMyTurn ? '🎴 PLAY CARD' : "Opponent's Turn"}
+            {isMyTurn ? '🎴 PLAY CARD' : `${currentPlayer?.name}'s Turn`}
           </Text>
         </TouchableOpacity>
 
@@ -643,7 +716,7 @@ export const ERSScreen: React.FC<ERSScreenProps> = ({ gameId, playerId, onExit }
         </View>
       </View>
 
-      <TouchableOpacity style={styles.exitButton} onPress={onExit}>
+      <TouchableOpacity style={styles.exitButton} onPress={handleExitWithSave}>
         <Text style={styles.buttonText}>Exit Game</Text>
       </TouchableOpacity>
     </View>
@@ -673,6 +746,40 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     color: '#94A3B8',
+    marginTop: 4,
+  },
+  allPlayersSection: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+    marginVertical: 12,
+  },
+  playerCard: {
+    backgroundColor: '#1E293B',
+    borderRadius: 8,
+    padding: 10,
+    minWidth: 120,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  playerCardActive: {
+    borderColor: '#A855F7',
+    backgroundColor: '#2D1B4E',
+  },
+  playerCardName: {
+    fontSize: 14,
+    color: '#E2E8F0',
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  playerCardNameActive: {
+    color: '#A855F7',
+  },
+  playerCardCount: {
+    fontSize: 12,
+    color: '#94A3B8',
+    textAlign: 'center',
     marginTop: 4,
   },
   playerSection: {
