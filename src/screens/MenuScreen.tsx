@@ -24,9 +24,10 @@ import { GameRoom } from '../types/game';
 import { getAvailableRooms, createGameRoom, joinGameRoom } from '../utils/firebaseService';
 import { registerForPushNotificationsAsync } from '../utils/notificationService';
 import { database } from '../config/firebase';
+import { hasSavedGame, loadGame, clearSavedGame, SavedGame } from '../utils/gameSaveService';
 
 interface MenuScreenProps {
-  onStartGame: (gameId: string, playerId: string, gameType: 'war' | 'ers' | 'uno' | 'phase10') => void;
+  onStartGame: (gameId: string, playerId: string, gameType: 'war' | 'ers' | 'uno' | 'phase10', playerCount?: number, resumeState?: any) => void;
   onOpenCustomCreator: () => void;
   onOpenSettings: () => void;
 }
@@ -45,6 +46,10 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
   const [availableRooms, setAvailableRooms] = useState<GameRoom[]>([]);
   const [roomCode, setRoomCode] = useState('');
   const [gameType, setGameType] = useState<'war' | 'ers' | 'uno' | 'phase10'>('war');
+  const [playerCount, setPlayerCount] = useState(2);
+  const [savedGame, setSavedGame] = useState<SavedGame | null>(null);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [pendingGameType, setPendingGameType] = useState<'war' | 'ers' | 'uno' | 'phase10' | null>(null);
 
   const titleScale = useSharedValue(1);
   const titleRotate = useSharedValue(0);
@@ -72,12 +77,49 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
     };
   });
 
-  const handleCreateGame = async (type: 'war' | 'ers' | 'uno' | 'phase10') => {
-    // Check if Firebase is available
-    if (!database) {
-      // Start local game without Firebase - no name required
+  const checkForSavedGame = async (type: 'war' | 'ers' | 'uno' | 'phase10') => {
+    const saved = await loadGame(type);
+    if (saved) {
+      setSavedGame(saved);
+      setPendingGameType(type);
+      setPlayerCount(saved.playerCount || 2);
+      setShowSaveModal(true);
+    } else {
+      // No saved game, show new game options
+      setPendingGameType(type);
+      setPlayerCount(2);
+      setShowSaveModal(true);
+    }
+  };
+
+  const handleResumeGame = () => {
+    if (savedGame && pendingGameType) {
       const gameId = `local_${Date.now()}`;
-      onStartGame(gameId, playerId, type);
+      onStartGame(gameId, playerId, pendingGameType, savedGame.playerCount, savedGame.gameState);
+      setShowSaveModal(false);
+      setSavedGame(null);
+      setPendingGameType(null);
+    }
+  };
+
+  const handleNewGame = () => {
+    if (pendingGameType) {
+      // Clear saved game if it exists
+      if (savedGame) {
+        clearSavedGame(pendingGameType);
+      }
+      const gameId = `local_${Date.now()}`;
+      onStartGame(gameId, playerId, pendingGameType, playerCount);
+      setShowSaveModal(false);
+      setSavedGame(null);
+      setPendingGameType(null);
+    }
+  };
+
+  const handleCreateGame = async (type: 'war' | 'ers' | 'uno' | 'phase10') => {
+    // For local games, check for saved game and show player options
+    if (!database) {
+      await checkForSavedGame(type);
       return;
     }
 
@@ -89,7 +131,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
 
     try {
       const gameId = await createGameRoom(playerId, playerName, sixSevenRule, pushToken);
-      onStartGame(gameId, playerId, type);
+      onStartGame(gameId, playerId, type, 2); // Remote games always 2 players for now
     } catch (error) {
       Alert.alert('Error', 'Failed to create game');
     }
@@ -442,6 +484,87 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
           </View>
         </View>
       </Modal>
+
+      {/* Save/Resume & Player Count Modal */}
+      <Modal visible={showSaveModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, {
+            backgroundColor: theme.colors.cardPile,
+            borderColor: theme.colors.primary
+          }]}>
+            <Text style={[styles.modalTitle, { color: theme.colors.primary }]}>
+              {pendingGameType?.toUpperCase()}
+            </Text>
+
+            {savedGame && (
+              <View style={[styles.savedGameBanner, { backgroundColor: theme.colors.success + '20', borderColor: theme.colors.success }]}>
+                <Text style={[styles.savedGameText, { color: theme.colors.success }]}>
+                  💾 Saved game found! ({savedGame.playerCount} players)
+                </Text>
+                <Text style={[styles.savedGameDate, { color: theme.colors.textSecondary }]}>
+                  {new Date(savedGame.savedAt).toLocaleDateString()} {new Date(savedGame.savedAt).toLocaleTimeString()}
+                </Text>
+              </View>
+            )}
+
+            <View style={styles.playerCountSection}>
+              <Text style={[styles.sectionLabel, { color: theme.colors.text }]}>Number of Players:</Text>
+              <View style={styles.playerCountButtons}>
+                {[2, 3, 4].map((count) => (
+                  <TouchableOpacity
+                    key={count}
+                    style={[
+                      styles.playerCountButton,
+                      { borderColor: theme.colors.primary },
+                      playerCount === count && { backgroundColor: theme.colors.primary }
+                    ]}
+                    onPress={() => setPlayerCount(count)}
+                    disabled={!!savedGame} // Can't change player count for saved games
+                  >
+                    <Text style={[
+                      styles.playerCountButtonText,
+                      { color: playerCount === count ? '#FFFFFF' : theme.colors.text },
+                      savedGame && { opacity: 0.5 }
+                    ]}>{count}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              {savedGame && (
+                <Text style={[styles.helperText, { color: theme.colors.textSecondary }]}>
+                  Player count locked for saved games
+                </Text>
+              )}
+            </View>
+
+            {savedGame && (
+              <TouchableOpacity
+                style={[styles.modalButton, { backgroundColor: theme.colors.success }]}
+                onPress={handleResumeGame}
+              >
+                <Text style={styles.modalButtonText}>▶️ Resume Game</Text>
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity
+              style={[styles.modalButton, { backgroundColor: theme.colors.secondary }]}
+              onPress={handleNewGame}
+            >
+              <Text style={styles.modalButtonText}>🆕 New Game</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => {
+                setShowSaveModal(false);
+                setSavedGame(null);
+                setPendingGameType(null);
+              }}
+            >
+              <Text style={[styles.cancelButtonText, { color: theme.colors.textSecondary }]}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </LinearGradient>
   );
 };
@@ -692,5 +815,50 @@ const styles = StyleSheet.create({
     color: '#64748B',
     textAlign: 'center',
     padding: 24,
+  },
+  savedGameBanner: {
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 16,
+  },
+  savedGameText: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  savedGameDate: {
+    fontSize: 12,
+  },
+  playerCountSection: {
+    marginBottom: 20,
+  },
+  sectionLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  playerCountButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'center',
+  },
+  playerCountButton: {
+    width: 60,
+    height: 60,
+    borderRadius: 12,
+    borderWidth: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  playerCountButtonText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  helperText: {
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 8,
+    fontStyle: 'italic',
   },
 });

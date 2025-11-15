@@ -21,11 +21,15 @@ function AppContent() {
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [gameType, setGameType] = useState<GameType>(null);
   const [customTemplate, setCustomTemplate] = useState<GameTemplate | null>(null);
+  const [playerCount, setPlayerCount] = useState<number>(2);
+  const [resumeState, setResumeState] = useState<any>(null);
 
-  const handleStartGame = (id: string, pId: string, type: GameType) => {
+  const handleStartGame = (id: string, pId: string, type: GameType, count?: number, resume?: any) => {
     setGameId(id);
     setPlayerId(pId);
     setGameType(type);
+    setPlayerCount(count || 2);
+    setResumeState(resume || null);
     setCurrentScreen('game');
   };
 
@@ -35,6 +39,8 @@ function AppContent() {
     setPlayerId(null);
     setGameType(null);
     setCustomTemplate(null);
+    setPlayerCount(2);
+    setResumeState(null);
   };
 
   const handleOpenCustomCreator = () => {
@@ -78,11 +84,11 @@ function AppContent() {
             onExit={handleExitGame}
           />
         ) : gameType === 'uno' ? (
-          <UnoScreen gameId={gameId} playerId={playerId} onExit={handleExitGame} />
+          <UnoScreen gameId={gameId} playerId={playerId} playerCount={playerCount} resumeState={resumeState} onExit={handleExitGame} />
         ) : gameType === 'phase10' ? (
-          <Phase10Screen gameId={gameId} playerId={playerId} onExit={handleExitGame} />
+          <Phase10Screen gameId={gameId} playerId={playerId} playerCount={playerCount} resumeState={resumeState} onExit={handleExitGame} />
         ) : gameType === 'ers' ? (
-          <ERSScreen gameId={gameId} playerId={playerId} onExit={handleExitGame} />
+          <ERSScreen gameId={gameId} playerId={playerId} playerCount={playerCount} resumeState={resumeState} onExit={handleExitGame} />
         ) : (
           <GameScreen gameId={gameId} playerId={playerId} onExit={handleExitGame} />
         )
