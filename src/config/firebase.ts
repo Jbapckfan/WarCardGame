@@ -1,28 +1,27 @@
 import { initializeApp } from 'firebase/app';
 import { getDatabase, Database } from 'firebase/database';
 
-// TODO: Replace with your Firebase config
-// Get this from Firebase Console > Project Settings > General > Your apps
+// Firebase configuration from Firebase Console
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  databaseURL: "", // Leave empty to disable Firebase
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyCBu2DeTDYk4vW8mcXvH-D5ZFT2ixHG89E",
+  authDomain: "card-games-55bfc.firebaseapp.com",
+  databaseURL: "https://card-games-55bfc-default-rtdb.firebaseio.com",
+  projectId: "card-games-55bfc",
+  storageBucket: "card-games-55bfc.firebasestorage.app",
+  messagingSenderId: "708628784156",
+  appId: "1:708628784156:web:3bfd98cd7bbdd2e0106bd9",
+  measurementId: "G-F0S5G196TL"
 };
 
 let database: Database | null = null;
 
-// Only initialize Firebase if databaseURL is provided
-if (firebaseConfig.databaseURL && firebaseConfig.databaseURL.includes('firebaseio.com')) {
-  try {
-    const app = initializeApp(firebaseConfig);
-    database = getDatabase(app);
-  } catch (error) {
-    console.warn('Firebase initialization failed:', error);
-  }
+// Initialize Firebase
+try {
+  const app = initializeApp(firebaseConfig);
+  database = getDatabase(app);
+  console.log('✅ Firebase initialized successfully');
+} catch (error) {
+  console.error('❌ Firebase initialization failed:', error);
 }
 
 export { database };
