@@ -18,6 +18,8 @@ import Animated, {
   withSequence,
   Easing,
 } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useTheme } from '../contexts/ThemeContext';
 import { GameRoom } from '../types/game';
 import { getAvailableRooms, createGameRoom, joinGameRoom } from '../utils/firebaseService';
 import { registerForPushNotificationsAsync } from '../utils/notificationService';
@@ -26,9 +28,11 @@ import { database } from '../config/firebase';
 interface MenuScreenProps {
   onStartGame: (gameId: string, playerId: string, gameType: 'war' | 'ers' | 'uno' | 'phase10') => void;
   onOpenCustomCreator: () => void;
+  onOpenSettings: () => void;
 }
 
-export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCustomCreator }) => {
+export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCustomCreator, onOpenSettings }) => {
+  const { theme } = useTheme();
   const [playerName, setPlayerName] = useState('');
   const [playerId] = useState(`player_${Date.now()}`);
   const [pushToken, setPushToken] = useState<string>();
@@ -125,7 +129,12 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
   };
 
   return (
-    <View style={styles.container}>
+    <LinearGradient colors={theme.colors.backgroundGradient} style={styles.container}>
+      {/* Settings Button */}
+      <TouchableOpacity style={styles.settingsButton} onPress={onOpenSettings}>
+        <Text style={[styles.settingsText, { color: theme.colors.primary }]}>⚙️</Text>
+      </TouchableOpacity>
+
       {/* Animated Background */}
       <View style={styles.backgroundPattern}>
         {[...Array(20)].map((_, i) => (
@@ -137,6 +146,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
                 left: `${(i % 5) * 20}%`,
                 top: `${Math.floor(i / 5) * 25}%`,
                 opacity: 0.05,
+                backgroundColor: theme.colors.cardPile,
               },
             ]}
           />
@@ -145,16 +155,22 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
 
       <ScrollView contentContainerStyle={styles.content}>
         <Animated.View style={titleAnimatedStyle}>
-          <Text style={styles.title}>🎴 CARD WARS 🎴</Text>
-          <Text style={styles.subtitle}>Premium Card Gaming</Text>
+          <Text style={[styles.title, { color: theme.colors.primary }]}>🎴 CARD WARS 🎴</Text>
+          <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>Premium Card Gaming</Text>
         </Animated.View>
 
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Your Name <Text style={styles.optional}>(for online play)</Text></Text>
+          <Text style={[styles.label, { color: theme.colors.text }]}>
+            Your Name <Text style={[styles.optional, { color: theme.colors.textSecondary }]}>(for online play)</Text>
+          </Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, {
+              backgroundColor: theme.colors.cardPile,
+              borderColor: theme.colors.primary,
+              color: theme.colors.text
+            }]}
             placeholder="Optional - only needed for online games"
-            placeholderTextColor="#64748B"
+            placeholderTextColor={theme.colors.textSecondary}
             value={playerName}
             onChangeText={setPlayerName}
           />
@@ -206,24 +222,27 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
       {/* WAR Menu Modal */}
       <Modal visible={showWarMenu} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>WAR Game</Text>
+          <View style={[styles.modalContent, {
+            backgroundColor: theme.colors.cardPile,
+            borderColor: theme.colors.primary
+          }]}>
+            <Text style={[styles.modalTitle, { color: theme.colors.primary }]}>WAR Game</Text>
 
             <TouchableOpacity
-              style={styles.toggleContainer}
+              style={[styles.toggleContainer, { backgroundColor: theme.colors.background }]}
               onPress={() => setSixSevenRule(!sixSevenRule)}
             >
-              <View style={[styles.toggle, sixSevenRule && styles.toggleActive]}>
+              <View style={[styles.toggle, sixSevenRule && { backgroundColor: theme.colors.success }]}>
                 <View style={[styles.toggleButton, sixSevenRule && styles.toggleButtonActive]} />
               </View>
               <View style={styles.toggleLabel}>
-                <Text style={styles.toggleText}>6-7 Rule</Text>
-                <Text style={styles.toggleSubtext}>War with only 1 card face down</Text>
+                <Text style={[styles.toggleText, { color: theme.colors.text }]}>6-7 Rule</Text>
+                <Text style={[styles.toggleSubtext, { color: theme.colors.textSecondary }]}>War with only 1 card face down</Text>
               </View>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.modalButton}
+              style={[styles.modalButton, { backgroundColor: theme.colors.success }]}
               onPress={() => {
                 setShowWarMenu(false);
                 handleCreateGame('war');
@@ -233,7 +252,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.modalButton, styles.secondaryButton]}
+              style={[styles.modalButton, styles.secondaryButton, { backgroundColor: theme.colors.secondary }]}
               onPress={() => {
                 setShowWarMenu(false);
                 openJoinMenu('war');
@@ -246,7 +265,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
               style={styles.cancelButton}
               onPress={() => setShowWarMenu(false)}
             >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+              <Text style={[styles.cancelButtonText, { color: theme.colors.textSecondary }]}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -255,14 +274,17 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
       {/* ERS Menu Modal */}
       <Modal visible={showERSMenu} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Egyptian Rat Screw</Text>
-            <Text style={styles.modalDescription}>
+          <View style={[styles.modalContent, {
+            backgroundColor: theme.colors.cardPile,
+            borderColor: theme.colors.primary
+          }]}>
+            <Text style={[styles.modalTitle, { color: theme.colors.primary }]}>Egyptian Rat Screw</Text>
+            <Text style={[styles.modalDescription, { color: theme.colors.textSecondary }]}>
               Slap on doubles, sandwiches, and face cards!
             </Text>
 
             <TouchableOpacity
-              style={styles.modalButton}
+              style={[styles.modalButton, { backgroundColor: theme.colors.success }]}
               onPress={() => {
                 setShowERSMenu(false);
                 handleCreateGame('ers');
@@ -272,7 +294,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.modalButton, styles.secondaryButton]}
+              style={[styles.modalButton, styles.secondaryButton, { backgroundColor: theme.colors.secondary }]}
               onPress={() => {
                 setShowERSMenu(false);
                 openJoinMenu('ers');
@@ -285,7 +307,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
               style={styles.cancelButton}
               onPress={() => setShowERSMenu(false)}
             >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+              <Text style={[styles.cancelButtonText, { color: theme.colors.textSecondary }]}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -294,14 +316,17 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
       {/* UNO Menu Modal */}
       <Modal visible={showUnoMenu} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>UNO</Text>
-            <Text style={styles.modalDescription}>
+          <View style={[styles.modalContent, {
+            backgroundColor: theme.colors.cardPile,
+            borderColor: theme.colors.primary
+          }]}>
+            <Text style={[styles.modalTitle, { color: theme.colors.primary }]}>UNO</Text>
+            <Text style={[styles.modalDescription, { color: theme.colors.textSecondary }]}>
               Match colors or numbers. First to empty their hand wins!
             </Text>
 
             <TouchableOpacity
-              style={styles.modalButton}
+              style={[styles.modalButton, { backgroundColor: theme.colors.success }]}
               onPress={() => {
                 setShowUnoMenu(false);
                 handleCreateGame('uno');
@@ -314,7 +339,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
               style={styles.cancelButton}
               onPress={() => setShowUnoMenu(false)}
             >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+              <Text style={[styles.cancelButtonText, { color: theme.colors.textSecondary }]}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -323,14 +348,17 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
       {/* Phase 10 Menu Modal */}
       <Modal visible={showPhase10Menu} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Phase 10</Text>
-            <Text style={styles.modalDescription}>
+          <View style={[styles.modalContent, {
+            backgroundColor: theme.colors.cardPile,
+            borderColor: theme.colors.primary
+          }]}>
+            <Text style={[styles.modalTitle, { color: theme.colors.primary }]}>Phase 10</Text>
+            <Text style={[styles.modalDescription, { color: theme.colors.textSecondary }]}>
               Complete all 10 phases. Sets, runs, and color sets!
             </Text>
 
             <TouchableOpacity
-              style={styles.modalButton}
+              style={[styles.modalButton, { backgroundColor: theme.colors.success }]}
               onPress={() => {
                 setShowPhase10Menu(false);
                 handleCreateGame('phase10');
@@ -343,7 +371,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
               style={styles.cancelButton}
               onPress={() => setShowPhase10Menu(false)}
             >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+              <Text style={[styles.cancelButtonText, { color: theme.colors.textSecondary }]}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -352,43 +380,53 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
       {/* Join Game Modal */}
       <Modal visible={showJoinMenu} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Join Game</Text>
+          <View style={[styles.modalContent, {
+            backgroundColor: theme.colors.cardPile,
+            borderColor: theme.colors.primary
+          }]}>
+            <Text style={[styles.modalTitle, { color: theme.colors.primary }]}>Join Game</Text>
 
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Room Code</Text>
+              <Text style={[styles.label, { color: theme.colors.text }]}>Room Code</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, {
+                  backgroundColor: theme.colors.background,
+                  borderColor: theme.colors.primary,
+                  color: theme.colors.text
+                }]}
                 placeholder="Enter room code"
-                placeholderTextColor="#64748B"
+                placeholderTextColor={theme.colors.textSecondary}
                 value={roomCode}
                 onChangeText={setRoomCode}
               />
               <TouchableOpacity
-                style={styles.smallButton}
+                style={[styles.smallButton, { backgroundColor: theme.colors.secondary }]}
                 onPress={() => handleJoinGame(roomCode)}
               >
                 <Text style={styles.modalButtonText}>Join with Code</Text>
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.modalTitle}>Available Rooms</Text>
+            <Text style={[styles.modalTitle, { color: theme.colors.primary }]}>Available Rooms</Text>
             <ScrollView style={styles.roomsList}>
               {availableRooms.length === 0 ? (
-                <Text style={styles.noRoomsText}>No available rooms</Text>
+                <Text style={[styles.noRoomsText, { color: theme.colors.textSecondary }]}>No available rooms</Text>
               ) : (
                 availableRooms.map((room) => (
                   <TouchableOpacity
                     key={room.id}
-                    style={styles.roomItem}
+                    style={[styles.roomItem, { backgroundColor: theme.colors.background }]}
                     onPress={() => {
                       setShowJoinMenu(false);
                       handleJoinGame(room.id);
                     }}
                   >
-                    <Text style={styles.roomText}>Room: {room.id.slice(0, 8)}...</Text>
+                    <Text style={[styles.roomText, { color: theme.colors.text }]}>Room: {room.id.slice(0, 8)}...</Text>
                     {room.sixSevenRuleEnabled && (
-                      <Text style={styles.roomTag}>6-7 Rule</Text>
+                      <Text style={[styles.roomTag, {
+                        color: theme.colors.success,
+                        backgroundColor: 'rgba(16, 185, 129, 0.2)'
+                      }]}>6-7 Rule</Text>
                     )}
                   </TouchableOpacity>
                 ))
@@ -399,19 +437,33 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
               style={styles.cancelButton}
               onPress={() => setShowJoinMenu(false)}
             >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+              <Text style={[styles.cancelButtonText, { color: theme.colors.textSecondary }]}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
-    </View>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+  },
+  settingsButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 100,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  settingsText: {
+    fontSize: 28,
   },
   backgroundPattern: {
     position: 'absolute',

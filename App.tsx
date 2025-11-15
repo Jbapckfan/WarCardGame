@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView, StyleSheet } from 'react-native';
+import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
 import { MenuScreen } from './src/screens/MenuScreen';
 import { GameScreen } from './src/screens/GameScreen';
 import { ERSScreen } from './src/screens/ERSScreen';
@@ -8,12 +9,14 @@ import { UnoScreen } from './src/screens/UnoScreen';
 import { Phase10Screen } from './src/screens/Phase10Screen';
 import { CustomGameCreatorScreen } from './src/screens/CustomGameCreatorScreen';
 import { CustomGameScreen } from './src/screens/CustomGameScreen';
+import { SettingsScreen } from './src/screens/SettingsScreen';
 import { GameTemplate } from './src/types/customGame';
 
 type GameType = 'war' | 'ers' | 'uno' | 'phase10' | 'custom' | null;
 
-export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<'menu' | 'game' | 'custom-creator'>('menu');
+function AppContent() {
+  const { theme } = useTheme();
+  const [currentScreen, setCurrentScreen] = useState<'menu' | 'game' | 'custom-creator' | 'settings'>('menu');
   const [gameId, setGameId] = useState<string | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [gameType, setGameType] = useState<GameType>(null);
@@ -46,11 +49,21 @@ export default function App() {
     setCurrentScreen('game');
   };
 
+  const handleOpenSettings = () => {
+    setCurrentScreen('settings');
+  };
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <StatusBar style="light" />
       {currentScreen === 'menu' ? (
-        <MenuScreen onStartGame={handleStartGame} onOpenCustomCreator={handleOpenCustomCreator} />
+        <MenuScreen
+          onStartGame={handleStartGame}
+          onOpenCustomCreator={handleOpenCustomCreator}
+          onOpenSettings={handleOpenSettings}
+        />
+      ) : currentScreen === 'settings' ? (
+        <SettingsScreen onExit={handleExitGame} />
       ) : currentScreen === 'custom-creator' ? (
         <CustomGameCreatorScreen
           onStartCustomGame={handleStartCustomGame}
@@ -75,6 +88,14 @@ export default function App() {
         )
       ) : null}
     </SafeAreaView>
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
   );
 }
 
