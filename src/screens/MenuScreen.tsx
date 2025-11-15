@@ -24,7 +24,7 @@ import { registerForPushNotificationsAsync } from '../utils/notificationService'
 import { database } from '../config/firebase';
 
 interface MenuScreenProps {
-  onStartGame: (gameId: string, playerId: string, gameType: 'war' | 'ers') => void;
+  onStartGame: (gameId: string, playerId: string, gameType: 'war' | 'ers' | 'uno' | 'phase10') => void;
 }
 
 export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
@@ -33,11 +33,13 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
   const [pushToken, setPushToken] = useState<string>();
   const [showWarMenu, setShowWarMenu] = useState(false);
   const [showERSMenu, setShowERSMenu] = useState(false);
+  const [showUnoMenu, setShowUnoMenu] = useState(false);
+  const [showPhase10Menu, setShowPhase10Menu] = useState(false);
   const [showJoinMenu, setShowJoinMenu] = useState(false);
   const [sixSevenRule, setSixSevenRule] = useState(true);
   const [availableRooms, setAvailableRooms] = useState<GameRoom[]>([]);
   const [roomCode, setRoomCode] = useState('');
-  const [gameType, setGameType] = useState<'war' | 'ers'>('war');
+  const [gameType, setGameType] = useState<'war' | 'ers' | 'uno' | 'phase10'>('war');
 
   const titleScale = useSharedValue(1);
   const titleRotate = useSharedValue(0);
@@ -65,7 +67,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
     };
   });
 
-  const handleCreateGame = async (type: 'war' | 'ers') => {
+  const handleCreateGame = async (type: 'war' | 'ers' | 'uno' | 'phase10') => {
     // Check if Firebase is available
     if (!database) {
       // Start local game without Firebase - no name required
@@ -115,7 +117,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
     }
   };
 
-  const openJoinMenu = async (type: 'war' | 'ers') => {
+  const openJoinMenu = async (type: 'war' | 'ers' | 'uno' | 'phase10') => {
     setGameType(type);
     await loadAvailableRooms();
     setShowJoinMenu(true);
@@ -158,6 +160,22 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
         </View>
 
         <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={[styles.gameButton, styles.unoButton]}
+            onPress={() => setShowUnoMenu(true)}
+          >
+            <Text style={styles.gameButtonTitle}>🎯 UNO</Text>
+            <Text style={styles.gameButtonSubtitle}>Match colors & numbers</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.gameButton, styles.phase10Button]}
+            onPress={() => setShowPhase10Menu(true)}
+          >
+            <Text style={styles.gameButtonTitle}>🎲 PHASE 10</Text>
+            <Text style={styles.gameButtonSubtitle}>Complete all 10 phases</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={[styles.gameButton, styles.warButton]}
             onPress={() => setShowWarMenu(true)}
@@ -257,6 +275,64 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
             <TouchableOpacity
               style={styles.cancelButton}
               onPress={() => setShowERSMenu(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* UNO Menu Modal */}
+      <Modal visible={showUnoMenu} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>UNO</Text>
+            <Text style={styles.modalDescription}>
+              Match colors or numbers. First to empty their hand wins!
+            </Text>
+
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => {
+                setShowUnoMenu(false);
+                handleCreateGame('uno');
+              }}
+            >
+              <Text style={styles.modalButtonText}>Play vs AI</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => setShowUnoMenu(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Phase 10 Menu Modal */}
+      <Modal visible={showPhase10Menu} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Phase 10</Text>
+            <Text style={styles.modalDescription}>
+              Complete all 10 phases. Sets, runs, and color sets!
+            </Text>
+
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => {
+                setShowPhase10Menu(false);
+                handleCreateGame('phase10');
+              }}
+            >
+              <Text style={styles.modalButtonText}>Play vs AI</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => setShowPhase10Menu(false)}
             >
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
@@ -398,6 +474,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
+  },
+  unoButton: {
+    backgroundColor: '#3B82F6',
+  },
+  phase10Button: {
+    backgroundColor: '#8B5CF6',
   },
   warButton: {
     backgroundColor: '#DC2626',
