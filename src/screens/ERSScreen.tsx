@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   Alert,
   Animated as RNAnimated,
+  Platform,
+  Vibration,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -15,6 +17,7 @@ import Animated, {
   withTiming,
   runOnJS,
 } from 'react-native-reanimated';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CardComponent } from '../components/CardComponent';
 import { ERSGameState } from '../types/ers';
 import { Card } from '../types/game';
@@ -56,6 +59,21 @@ export const ERSScreen: React.FC<ERSScreenProps> = ({ gameId, playerId, onExit }
       opacity: slapScale.value,
     };
   });
+
+  // Load fastest slap from storage
+  useEffect(() => {
+    const loadFastestSlap = async () => {
+      try {
+        const stored = await AsyncStorage.getItem('ers_fastest_slap');
+        if (stored) {
+          setFastestSlap(parseFloat(stored));
+        }
+      } catch (error) {
+        console.log('Failed to load fastest slap:', error);
+      }
+    };
+    loadFastestSlap();
+  }, []);
 
   // Mock game state for demonstration
   useEffect(() => {
@@ -336,6 +354,10 @@ export const ERSScreen: React.FC<ERSScreenProps> = ({ gameId, playerId, onExit }
 
     if (slapCheck.valid) {
       // Successful slap!
+      // Haptic feedback for successful slap
+      if (Platform.OS === 'ios') {
+        Vibration.vibrate(50); // Short vibration
+      }
       slapScale.value = withSequence(
         withTiming(1.5, { duration: 100 }),
         withTiming(0, { duration: 300 })
@@ -359,16 +381,31 @@ export const ERSScreen: React.FC<ERSScreenProps> = ({ gameId, playerId, onExit }
       if (reactionTime !== null) {
         setLastSlapTime(reactionTimeMs!);
 
-        if (fastestSlap === null || reactionTimeMs! < fastestSlap) {
+        // Check for super fast slap (under 400ms)
+        const isSuperFast = reactionTimeMs! < 400;
+        const isNewRecord = fastestSlap === null || reactionTimeMs! < fastestSlap;
+
+        if (isNewRecord) {
           setFastestSlap(reactionTimeMs!);
-          feedbackText += ` ⚡ NEW RECORD: ${reactionTime.toFixed(3)}s`;
+          // Save to AsyncStorage
+          AsyncStorage.setItem('ers_fastest_slap', reactionTimeMs!.toString()).catch(err =>
+            console.log('Failed to save fastest slap:', err)
+          );
+
+          if (isSuperFast) {
+            feedbackText += ` 🔥 SUPER FAST SLAP! 🔥\n⚡ NEW RECORD: ${reactionTime.toFixed(3)}s`;
+          } else {
+            feedbackText += ` ⚡ NEW RECORD: ${reactionTime.toFixed(3)}s`;
+          }
+        } else if (isSuperFast) {
+          feedbackText += ` 🔥 SUPER FAST SLAP! ${reactionTime.toFixed(3)}s`;
         } else {
           feedbackText += ` ⏱️ ${reactionTime.toFixed(3)}s`;
         }
       }
 
       setSlapFeedback(feedbackText);
-      setTimeout(() => setSlapFeedback(''), 2000);
+      setTimeout(() => setSlapFeedback(''), 3000);
 
       // Give player the pile
       const updatedState: ERSGameState = {
@@ -387,6 +424,10 @@ export const ERSScreen: React.FC<ERSScreenProps> = ({ gameId, playerId, onExit }
       setGameState(updatedState);
     } else {
       // Bad slap - penalty
+      // Different haptic feedback for bad slap
+      if (Platform.OS === 'ios') {
+        Vibration.vibrate([0, 100, 50, 100]); // Double vibration pattern
+      }
       slapScale.value = withSequence(
         withTiming(1.2, { duration: 100 }),
         withTiming(0, { duration: 300 })
@@ -499,43 +540,50 @@ export const ERSScreen: React.FC<ERSScreenProps> = ({ gameId, playerId, onExit }
         )}
 
         <View style={styles.stackContainer}>
-          <Animated.View style={[styles.pileContainer, pileAnimatedStyle]}>
-            {gameState.pile.length > 0 ? (
-              <>
-                {/* Show up to last 5 cards in a diagonal stack */}
-                {gameState.pile.slice(-5).map((card, index, arr) => {
-                  const isTopCard = index === arr.length - 1;
-                  const verticalOffset = index * 30; // Increased vertical offset
-                  const horizontalOffset = index * 20; // Increased horizontal offset
-                  const opacity = 0.8 + (index / arr.length) * 0.2; // Gradual opacity increase
-                  return (
-                    <View
-                      key={`${card.id}-${index}`}
-                      style={[
-                        styles.stackedCard,
-                        {
-                          top: verticalOffset,
-                          left: horizontalOffset,
-                          zIndex: index,
-                          opacity: isTopCard ? 1 : opacity,
-                        },
-                      ]}
-                    >
-                      <CardComponent
-                        card={card}
-                        animated={isTopCard}
-                        scale={isTopCard ? 1.2 : 1.0}
-                      />
-                    </View>
-                  );
-                })}
-              </>
-            ) : (
-              <View style={styles.emptyPile}>
-                <Text style={styles.emptyPileText}>Empty Pile</Text>
-              </View>
-            )}
-          </Animated.View>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={handleSlap}
+            style={styles.pileTouchArea}
+          >
+            <Animated.View style={[styles.pileContainer, pileAnimatedStyle]}>
+              {gameState.pile.length > 0 ? (
+                <>
+                  {/* Show up to last 5 cards in a diagonal stack */}
+                  {gameState.pile.slice(-5).map((card, index, arr) => {
+                    const isTopCard = index === arr.length - 1;
+                    const verticalOffset = index * 30; // Increased vertical offset
+                    const horizontalOffset = index * 20; // Increased horizontal offset
+                    const opacity = 0.8 + (index / arr.length) * 0.2; // Gradual opacity increase
+                    return (
+                      <View
+                        key={`${card.id}-${index}`}
+                        style={[
+                          styles.stackedCard,
+                          {
+                            top: verticalOffset,
+                            left: horizontalOffset,
+                            zIndex: index,
+                            opacity: isTopCard ? 1 : opacity,
+                          },
+                        ]}
+                      >
+                        <CardComponent
+                          card={card}
+                          animated={isTopCard}
+                          scale={isTopCard ? 1.2 : 1.0}
+                        />
+                      </View>
+                    );
+                  })}
+                </>
+              ) : (
+                <View style={styles.emptyPile}>
+                  <Text style={styles.emptyPileText}>Empty Pile</Text>
+                  <Text style={styles.tapToSlapText}>Tap pile to slap!</Text>
+                </View>
+              )}
+            </Animated.View>
+          </TouchableOpacity>
           <Text style={styles.pileCount}>Pile: {gameState.pile.length} cards</Text>
         </View>
 
@@ -575,6 +623,8 @@ export const ERSScreen: React.FC<ERSScreenProps> = ({ gameId, playerId, onExit }
         >
           <Text style={styles.slapButtonText}>👋 SLAP!</Text>
         </TouchableOpacity>
+
+        <Text style={styles.slapHintText}>💡 Tip: Tap the card pile directly to slap!</Text>
       </View>
 
       {/* Rules & Stats Info */}
@@ -667,6 +717,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'relative',
   },
+  pileTouchArea: {
+    // Large touch target for easy slapping
+    minWidth: 200,
+    minHeight: 250,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   pileContainer: {
     alignItems: 'center',
     position: 'relative',
@@ -689,6 +746,12 @@ const styles = StyleSheet.create({
   emptyPileText: {
     fontSize: 16,
     color: '#64748B',
+  },
+  tapToSlapText: {
+    fontSize: 12,
+    color: '#A855F7',
+    marginTop: 8,
+    fontStyle: 'italic',
   },
   pileCount: {
     fontSize: 16,
@@ -772,6 +835,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#FFFFFF',
     textAlign: 'center',
+  },
+  slapHintText: {
+    fontSize: 12,
+    color: '#94A3B8',
+    textAlign: 'center',
+    marginTop: 8,
+    fontStyle: 'italic',
   },
   rulesSection: {
     backgroundColor: '#1E293B',
