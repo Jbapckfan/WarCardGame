@@ -30,6 +30,7 @@ export const Phase10Screen: React.FC<Phase10ScreenProps> = ({ gameId, playerId, 
   const [gameState, setGameState] = useState<Phase10GameState | null>(null);
   const [selectedCards, setSelectedCards] = useState<Phase10Card[]>([]);
   const [hasDrawn, setHasDrawn] = useState(false);
+  const [sortBy, setSortBy] = useState<'none' | 'color' | 'number'>('none');
 
   useEffect(() => {
     // Initialize local game
@@ -311,6 +312,34 @@ export const Phase10Screen: React.FC<Phase10ScreenProps> = ({ gameId, playerId, 
     }
   };
 
+  const getColorPriority = (color: string): number => {
+    const order = { red: 0, blue: 1, green: 2, yellow: 3, wild: 4 };
+    return order[color as keyof typeof order] ?? 5;
+  };
+
+  const getNumberValue = (value: string): number => {
+    if (value === 'skip') return 100;
+    if (value === 'wild') return 101;
+    return parseInt(value) || 0;
+  };
+
+  const getSortedHand = (hand: Phase10Card[]): Phase10Card[] => {
+    if (sortBy === 'color') {
+      return [...hand].sort((a, b) => {
+        const colorDiff = getColorPriority(a.color) - getColorPriority(b.color);
+        if (colorDiff !== 0) return colorDiff;
+        return getNumberValue(a.value) - getNumberValue(b.value);
+      });
+    } else if (sortBy === 'number') {
+      return [...hand].sort((a, b) => {
+        const numDiff = getNumberValue(a.value) - getNumberValue(b.value);
+        if (numDiff !== 0) return numDiff;
+        return getColorPriority(a.color) - getColorPriority(b.color);
+      });
+    }
+    return hand;
+  };
+
   return (
     <LinearGradient colors={['#0F172A', '#1E293B', '#334155']} style={styles.container}>
       {/* Header */}
@@ -384,9 +413,29 @@ export const Phase10Screen: React.FC<Phase10ScreenProps> = ({ gameId, playerId, 
 
       {/* Player Hand */}
       <View style={styles.handSection}>
-        <Text style={styles.handTitle}>Your Hand ({currentPlayer.hand.length})</Text>
+        <View style={styles.handHeader}>
+          <Text style={styles.handTitle}>Your Hand ({currentPlayer.hand.length})</Text>
+          <View style={styles.sortButtons}>
+            <TouchableOpacity
+              style={[styles.sortButton, sortBy === 'color' && styles.sortButtonActive]}
+              onPress={() => setSortBy(sortBy === 'color' ? 'none' : 'color')}
+            >
+              <Text style={[styles.sortButtonText, sortBy === 'color' && styles.sortButtonTextActive]}>
+                🎨 Color
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.sortButton, sortBy === 'number' && styles.sortButtonActive]}
+              onPress={() => setSortBy(sortBy === 'number' ? 'none' : 'number')}
+            >
+              <Text style={[styles.sortButtonText, sortBy === 'number' && styles.sortButtonTextActive]}>
+                🔢 Number
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
         <View style={styles.hand}>
-          {currentPlayer.hand.map((card) => (
+          {getSortedHand(currentPlayer.hand).map((card) => (
             <TouchableOpacity
               key={card.id}
               style={[
@@ -549,12 +598,41 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingTop: 12,
   },
+  handHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
   handTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
-    paddingHorizontal: 16,
-    marginBottom: 8,
+  },
+  sortButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  sortButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  sortButtonActive: {
+    backgroundColor: '#8B5CF6',
+    borderColor: '#8B5CF6',
+  },
+  sortButtonText: {
+    fontSize: 12,
+    color: '#D1D5DB',
+    fontWeight: '600',
+  },
+  sortButtonTextActive: {
+    color: '#FFFFFF',
   },
   hand: {
     paddingHorizontal: 12,
