@@ -385,7 +385,7 @@ export const Phase10Screen: React.FC<Phase10ScreenProps> = ({ gameId, playerId, 
       {/* Player Hand */}
       <View style={styles.handSection}>
         <Text style={styles.handTitle}>Your Hand ({currentPlayer.hand.length})</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.hand}>
+        <View style={styles.hand}>
           {currentPlayer.hand.map((card) => (
             <TouchableOpacity
               key={card.id}
@@ -400,7 +400,7 @@ export const Phase10Screen: React.FC<Phase10ScreenProps> = ({ gameId, playerId, 
               <Text style={styles.handCardText}>{card.value.toUpperCase()}</Text>
             </TouchableOpacity>
           ))}
-        </ScrollView>
+        </View>
       </View>
 
       {/* Phase Completion Info */}
@@ -557,15 +557,17 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   hand: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
   },
   handCard: {
-    width: 70,
-    height: 100,
+    width: 56,
+    height: 80,
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 8,
     borderWidth: 2,
     borderColor: '#FFFFFF',
   },
@@ -574,7 +576,7 @@ const styles = StyleSheet.create({
   },
   handCardText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: 'bold',
     textAlign: 'center',
   },

@@ -332,7 +332,7 @@ export const UnoScreen: React.FC<UnoScreenProps> = ({ gameId, playerId, onExit }
       {/* Player Hand */}
       <View style={styles.handSection}>
         <Text style={styles.handTitle}>Your Hand ({currentPlayer.hand.length})</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.hand}>
+        <View style={styles.hand}>
           {currentPlayer.hand.map((card) => {
             const isPlayable = canPlayCard(card, topCard, gameState.currentColor);
             return (
@@ -350,7 +350,7 @@ export const UnoScreen: React.FC<UnoScreenProps> = ({ gameId, playerId, onExit }
               </TouchableOpacity>
             );
           })}
-        </ScrollView>
+        </View>
       </View>
 
       {/* Color Picker Modal */}
@@ -510,15 +510,17 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   hand: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
   },
   handCard: {
-    width: 80,
-    height: 110,
+    width: 60,
+    height: 85,
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 8,
     borderWidth: 2,
     borderColor: '#FFFFFF',
   },
@@ -527,7 +529,7 @@ const styles = StyleSheet.create({
   },
   handCardText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: 'bold',
     textAlign: 'center',
   },
