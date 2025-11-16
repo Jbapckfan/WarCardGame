@@ -182,7 +182,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
         await triggerHaptic.buttonTap();
         onOpenSettings();
       }}>
-        <Text style={[styles.settingsText, { color: theme.colors.primary }]}>⚙️</Text>
+        <Text style={[styles.settingsButtonText, { color: theme.colors.primary }]}>Settings</Text>
       </TouchableOpacity>
 
       {/* Animated Background */}
@@ -205,7 +205,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
 
       <ScrollView contentContainerStyle={styles.content}>
         <Animated.View style={titleAnimatedStyle}>
-          <Text style={[styles.title, { color: theme.colors.primary }]}>🎴 CARD WARS 🎴</Text>
+          <Text style={[styles.title, { color: theme.colors.primary }]}>CARD WARS</Text>
           <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>Premium Card Gaming</Text>
         </Animated.View>
 
@@ -234,8 +234,8 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
               onOpenCustomCreator();
             }}
           >
-            <Text style={styles.gameButtonTitle}>🎲 CUSTOM GAMES</Text>
-            <Text style={styles.gameButtonSubtitle}>Create your own rules!</Text>
+            <Text style={styles.gameButtonTitle}>CUSTOM GAMES</Text>
+            <Text style={styles.gameButtonSubtitle}>Create your own rules</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -245,7 +245,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
               setShowUnoMenu(true);
             }}
           >
-            <Text style={styles.gameButtonTitle}>🎯 UNO</Text>
+            <Text style={styles.gameButtonTitle}>UNO</Text>
             <Text style={styles.gameButtonSubtitle}>Match colors & numbers</Text>
           </TouchableOpacity>
 
@@ -256,7 +256,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
               setShowPhase10Menu(true);
             }}
           >
-            <Text style={styles.gameButtonTitle}>🎲 PHASE 10</Text>
+            <Text style={styles.gameButtonTitle}>PHASE 10</Text>
             <Text style={styles.gameButtonSubtitle}>Complete all 10 phases</Text>
           </TouchableOpacity>
 
@@ -267,7 +267,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
               setShowWarMenu(true);
             }}
           >
-            <Text style={styles.gameButtonTitle}>⚔️ WAR</Text>
+            <Text style={styles.gameButtonTitle}>WAR</Text>
             <Text style={styles.gameButtonSubtitle}>Classic battle</Text>
           </TouchableOpacity>
 
@@ -278,7 +278,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
               setShowERSMenu(true);
             }}
           >
-            <Text style={styles.gameButtonTitle}>👋 EGYPTIAN RAT SCREW</Text>
+            <Text style={styles.gameButtonTitle}>EGYPTIAN RAT SCREW</Text>
             <Text style={styles.gameButtonSubtitle}>Fast reflexes required</Text>
           </TouchableOpacity>
 
@@ -300,8 +300,8 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
               checkAndStart();
             }}
           >
-            <Text style={styles.gameButtonTitle}>👑 KINGS IN THE CORNERS</Text>
-            <Text style={styles.gameButtonSubtitle}>Strategic solitaire game</Text>
+            <Text style={styles.gameButtonTitle}>KINGS IN THE CORNERS</Text>
+            <Text style={styles.gameButtonSubtitle}>Strategic card game</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -311,8 +311,8 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
               setShowGoFishMenu(true);
             }}
           >
-            <Text style={styles.gameButtonTitle}>🐟 GO FISH</Text>
-            <Text style={styles.gameButtonSubtitle}>Perfect for kids!</Text>
+            <Text style={styles.gameButtonTitle}>GO FISH</Text>
+            <Text style={styles.gameButtonSubtitle}>Perfect for kids</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -323,7 +323,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
               onStartGame(gameId, playerId, 'solitaire', 1);
             }}
           >
-            <Text style={styles.gameButtonTitle}>♠️ SOLITAIRE</Text>
+            <Text style={styles.gameButtonTitle}>SOLITAIRE</Text>
             <Text style={styles.gameButtonSubtitle}>Classic Klondike</Text>
           </TouchableOpacity>
 
@@ -335,7 +335,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
               onStartGame(gameId, playerId, 'hearts', 4);
             }}
           >
-            <Text style={styles.gameButtonTitle}>♥️ HEARTS</Text>
+            <Text style={styles.gameButtonTitle}>HEARTS</Text>
             <Text style={styles.gameButtonSubtitle}>4-player trick-taking</Text>
           </TouchableOpacity>
         </View>
@@ -756,7 +756,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
                   handleResumeGame();
                 }}
               >
-                <Text style={styles.modalButtonText}>▶️ Resume Game</Text>
+                <Text style={styles.modalButtonText}>Resume Game</Text>
               </TouchableOpacity>
             )}
 
@@ -767,7 +767,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
                 handleNewGame();
               }}
             >
-              <Text style={styles.modalButtonText}>🆕 New Game</Text>
+              <Text style={styles.modalButtonText}>New Game</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -797,15 +797,16 @@ const styles = StyleSheet.create({
     top: 50,
     right: 20,
     zIndex: 100,
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  settingsText: {
-    fontSize: 28,
+  settingsButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   backgroundPattern: {
     position: 'absolute',

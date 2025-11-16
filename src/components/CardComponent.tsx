@@ -162,41 +162,14 @@ export const CardComponent: React.FC<CardComponentProps> = ({
             <View style={styles.cardFront}>
               <View style={styles.cornerTop}>
                 <Text style={[styles.rank, { color: suitColor }]}>{rankName}</Text>
-                <LinearGradient
-                  colors={suitColor === '#DC2626'
-                    ? ['#DC2626', '#B91C1C', '#991B1B']
-                    : ['#1F2937', '#111827', '#000000']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.suitGradientContainer}
-                >
-                  <Text style={[styles.suitSmall, { color: '#FFFFFF' }]}>{suitSymbol}</Text>
-                </LinearGradient>
+                <Text style={[styles.suitSmall, { color: suitColor }]}>{suitSymbol}</Text>
               </View>
 
-              <LinearGradient
-                colors={suitColor === '#DC2626'
-                  ? ['#DC2626', '#B91C1C', '#991B1B']
-                  : ['#1F2937', '#111827', '#000000']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.suitLargeGradient}
-              >
-                <Text style={[styles.suitLarge, { color: '#FFFFFF' }]}>{suitSymbol}</Text>
-              </LinearGradient>
+              <Text style={[styles.suitLarge, { color: suitColor }]}>{suitSymbol}</Text>
 
               <View style={styles.cornerBottom}>
                 <Text style={[styles.rank, { color: suitColor }]}>{rankName}</Text>
-                <LinearGradient
-                  colors={suitColor === '#DC2626'
-                    ? ['#DC2626', '#B91C1C', '#991B1B']
-                    : ['#1F2937', '#111827', '#000000']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.suitGradientContainer}
-                >
-                  <Text style={[styles.suitSmall, { color: '#FFFFFF' }]}>{suitSymbol}</Text>
-                </LinearGradient>
+                <Text style={[styles.suitSmall, { color: suitColor }]}>{suitSymbol}</Text>
               </View>
             </View>
           </>
@@ -313,33 +286,20 @@ const styles = StyleSheet.create({
   rank: {
     fontSize: 20,
     fontWeight: '900',
-    textShadowColor: 'rgba(0, 0, 0, 0.15)',
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
     textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
-  },
-  suitGradientContainer: {
-    borderRadius: 8,
-    paddingHorizontal: 4,
-    paddingVertical: 2,
-    marginTop: 2,
-  },
-  suitSmall: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
-  suitLargeGradient: {
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+  suitSmall: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginTop: -2,
   },
   suitLarge: {
-    fontSize: 52,
+    fontSize: 56,
     fontWeight: 'bold',
-    textShadowColor: 'rgba(0, 0, 0, 0.4)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 3,
   },
 });
