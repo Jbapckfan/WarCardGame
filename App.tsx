@@ -8,12 +8,15 @@ import { ERSScreen } from './src/screens/ERSScreen';
 import { UnoScreen } from './src/screens/UnoScreen';
 import { Phase10Screen } from './src/screens/Phase10Screen';
 import { KingsCornersScreen } from './src/screens/KingsCornersScreen';
+import { GoFishScreen } from './src/screens/GoFishScreen';
+import { SolitaireScreen } from './src/screens/SolitaireScreen';
+import { HeartsScreen } from './src/screens/HeartsScreen';
 import { CustomGameCreatorScreen } from './src/screens/CustomGameCreatorScreen';
 import { CustomGameScreen } from './src/screens/CustomGameScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { GameTemplate } from './src/types/customGame';
 
-type GameType = 'war' | 'ers' | 'uno' | 'phase10' | 'kings' | 'custom' | null;
+type GameType = 'war' | 'ers' | 'uno' | 'phase10' | 'kings' | 'gofish' | 'solitaire' | 'hearts' | 'custom' | null;
 
 function AppContent() {
   const { theme } = useTheme();
@@ -90,6 +93,12 @@ function AppContent() {
           <Phase10Screen gameId={gameId} playerId={playerId} playerCount={playerCount} resumeState={resumeState} onExit={handleExitGame} />
         ) : gameType === 'kings' ? (
           <KingsCornersScreen gameId={gameId} playerId={playerId} playerCount={playerCount} resumeState={resumeState} onExit={handleExitGame} />
+        ) : gameType === 'gofish' ? (
+          <GoFishScreen gameId={gameId} playerId={playerId} playerCount={playerCount} resumeState={resumeState} onExit={handleExitGame} />
+        ) : gameType === 'solitaire' ? (
+          <SolitaireScreen gameId={gameId} playerId={playerId} resumeState={resumeState} onExit={handleExitGame} />
+        ) : gameType === 'hearts' ? (
+          <HeartsScreen gameId={gameId} playerId={playerId} resumeState={resumeState} onExit={handleExitGame} />
         ) : gameType === 'ers' ? (
           <ERSScreen gameId={gameId} playerId={playerId} playerCount={playerCount} resumeState={resumeState} onExit={handleExitGame} />
         ) : (
