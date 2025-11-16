@@ -20,6 +20,7 @@ import {
 import { saveGame } from '../utils/gameSaveService';
 import { CardComponent } from '../components/CardComponent';
 import { Card } from '../types/game';
+import { triggerHaptic } from '../utils/hapticManager';
 
 interface SolitaireScreenProps {
   gameId: string;
@@ -43,6 +44,7 @@ export const SolitaireScreen: React.FC<SolitaireScreenProps> = ({
   } | null>(null);
 
   const handleExitWithSave = async () => {
+    await triggerHaptic.buttonTap();
     if (gameState && gameState.gameStatus === 'playing') {
       await saveGame('custom', gameState, 1);
     }
@@ -64,7 +66,7 @@ export const SolitaireScreen: React.FC<SolitaireScreenProps> = ({
     );
   }
 
-  const handleCardClick = (
+  const handleCardClick = async (
     card: Card,
     from: 'tableau' | 'waste' | 'foundation',
     index: number,
@@ -85,11 +87,13 @@ export const SolitaireScreen: React.FC<SolitaireScreenProps> = ({
       }
 
       if (newState) {
+        await triggerHaptic.cardPlay();
         setGameState(newState);
         setSelectedCard(null);
 
         // Check for win
         if (checkSolitaireWin(newState)) {
+          await triggerHaptic.win();
           newState.gameStatus = 'won';
           newState.endTime = Date.now();
           const finalScore = calculateScore(newState);
@@ -104,27 +108,32 @@ export const SolitaireScreen: React.FC<SolitaireScreenProps> = ({
         }
       } else {
         // Invalid move, deselect
+        await triggerHaptic.error();
         setSelectedCard(null);
       }
     } else {
       // Select card
+      await triggerHaptic.buttonTap();
       setSelectedCard({ card, from, index, cardIndex });
     }
   };
 
-  const handleDraw = () => {
+  const handleDraw = async () => {
+    await triggerHaptic.buttonTap();
     const newState = drawFromStock(gameState);
     setGameState(newState);
     setSelectedCard(null);
   };
 
-  const handleAutoMove = () => {
+  const handleAutoMove = async () => {
     const newState = getAutoMoveToFoundation(gameState);
     if (newState) {
+      await triggerHaptic.cardPlay();
       setGameState(newState);
 
       // Check for win
       if (checkSolitaireWin(newState)) {
+        await triggerHaptic.win();
         newState.gameStatus = 'won';
         newState.endTime = Date.now();
         const finalScore = calculateScore(newState);
@@ -138,11 +147,13 @@ export const SolitaireScreen: React.FC<SolitaireScreenProps> = ({
         );
       }
     } else {
+      await triggerHaptic.error();
       Alert.alert('No Moves', 'No cards can be moved to foundation automatically');
     }
   };
 
-  const handleNewGame = () => {
+  const handleNewGame = async () => {
+    await triggerHaptic.buttonTap();
     const newState = dealSolitaireGame(gameId, 1);
     setGameState(newState);
     setSelectedCard(null);

@@ -18,6 +18,7 @@ import {
 } from '../utils/goFishLogic';
 import { saveGame } from '../utils/gameSaveService';
 import { CardComponent } from '../components/CardComponent';
+import { triggerHaptic } from '../utils/hapticManager';
 
 interface GoFishScreenProps {
   gameId: string;
@@ -39,6 +40,7 @@ export const GoFishScreen: React.FC<GoFishScreenProps> = ({
   const [showPlayerSelect, setShowPlayerSelect] = useState(false);
 
   const handleExitWithSave = async () => {
+    await triggerHaptic.buttonTap();
     if (gameState && gameState.gameStatus === 'playing') {
       await saveGame('custom', gameState, playerCount);
     }
@@ -71,12 +73,14 @@ export const GoFishScreen: React.FC<GoFishScreenProps> = ({
     new Set(currentPlayer.deck.map(card => card.rank))
   ).sort((a, b) => a - b);
 
-  const handleAskForCards = (targetPlayerIndex: number) => {
+  const handleAskForCards = async (targetPlayerIndex: number) => {
     if (!selectedRank) {
+      await triggerHaptic.error();
       Alert.alert('Select a Rank', 'Please select a rank to ask for first');
       return;
     }
 
+    await triggerHaptic.cardPlay();
     const { newState, result } = askForCards(
       gameState,
       gameState.currentTurn,
@@ -90,6 +94,9 @@ export const GoFishScreen: React.FC<GoFishScreenProps> = ({
 
     // Show result feedback
     if (result.success) {
+      if (result.formedBook) {
+        await triggerHaptic.success();
+      }
       const message = result.formedBook
         ? `Got ${result.cardsReceived.length} card(s)! Formed a book of ${getRankDisplayName(result.bookRank!)}s! 🎉`
         : `Got ${result.cardsReceived.length} card(s)!`;
@@ -101,6 +108,7 @@ export const GoFishScreen: React.FC<GoFishScreenProps> = ({
     // Check for winner
     const winnerId = checkGoFishWinner(newState);
     if (winnerId !== null) {
+      await triggerHaptic.win();
       newState.gameStatus = 'finished';
       newState.winner = winnerId;
       setGameState(newState);
@@ -112,7 +120,8 @@ export const GoFishScreen: React.FC<GoFishScreenProps> = ({
     }
   };
 
-  const handleRankSelect = (rank: number) => {
+  const handleRankSelect = async (rank: number) => {
+    await triggerHaptic.buttonTap();
     setSelectedRank(rank);
     setShowPlayerSelect(true);
   };

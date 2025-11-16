@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,9 +6,12 @@ import {
   TouchableOpacity,
   ScrollView,
   Dimensions,
+  Switch,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../contexts/ThemeContext';
+import { soundManager } from '../utils/soundManager';
+import { hapticManager, triggerHaptic } from '../utils/hapticManager';
 
 interface SettingsScreenProps {
   onExit: () => void;
@@ -19,9 +22,37 @@ const CARD_WIDTH = (width - 48) / 2; // 2 columns with padding
 
 export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onExit }) => {
   const { theme, setTheme, availableThemes } = useTheme();
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [hapticEnabled, setHapticEnabled] = useState(true);
 
-  const handleThemeSelect = (themeId: string) => {
+  useEffect(() => {
+    // Initialize managers and load settings
+    const initializeSettings = async () => {
+      await soundManager.initialize();
+      await hapticManager.initialize();
+      setSoundEnabled(soundManager.isSoundEnabled());
+      setHapticEnabled(hapticManager.isHapticEnabled());
+    };
+    initializeSettings();
+  }, []);
+
+  const handleThemeSelect = async (themeId: string) => {
     setTheme(themeId);
+    await triggerHaptic.buttonTap();
+  };
+
+  const handleSoundToggle = async () => {
+    const newValue = await soundManager.toggleSound();
+    setSoundEnabled(newValue);
+    await triggerHaptic.buttonTap();
+  };
+
+  const handleHapticToggle = async () => {
+    const newValue = await hapticManager.toggleHaptic();
+    setHapticEnabled(newValue);
+    if (newValue) {
+      await triggerHaptic.success(); // Test haptic when enabling
+    }
   };
 
   return (
@@ -126,6 +157,52 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onExit }) => {
                 </TouchableOpacity>
               );
             })}
+          </View>
+        </View>
+
+        {/* Audio & Haptics Settings */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+            🔊 Audio & Haptics
+          </Text>
+          <Text style={[styles.sectionDescription, { color: theme.colors.textSecondary }]}>
+            Customize sound effects and tactile feedback
+          </Text>
+
+          {/* Sound Toggle */}
+          <View style={[styles.settingRow, { backgroundColor: 'rgba(255, 255, 255, 0.05)' }]}>
+            <View style={styles.settingInfo}>
+              <Text style={[styles.settingLabel, { color: theme.colors.text }]}>
+                🎵 Sound Effects
+              </Text>
+              <Text style={[styles.settingDescription, { color: theme.colors.textSecondary }]}>
+                Card flips, wins, and game sounds
+              </Text>
+            </View>
+            <Switch
+              value={soundEnabled}
+              onValueChange={handleSoundToggle}
+              trackColor={{ false: '#767577', true: theme.colors.primary }}
+              thumbColor={soundEnabled ? '#FFFFFF' : '#f4f3f4'}
+            />
+          </View>
+
+          {/* Haptic Toggle */}
+          <View style={[styles.settingRow, { backgroundColor: 'rgba(255, 255, 255, 0.05)' }]}>
+            <View style={styles.settingInfo}>
+              <Text style={[styles.settingLabel, { color: theme.colors.text }]}>
+                📳 Haptic Feedback
+              </Text>
+              <Text style={[styles.settingDescription, { color: theme.colors.textSecondary }]}>
+                Tactile vibrations for premium feel (iOS only)
+              </Text>
+            </View>
+            <Switch
+              value={hapticEnabled}
+              onValueChange={handleHapticToggle}
+              trackColor={{ false: '#767577', true: theme.colors.primary }}
+              thumbColor={hapticEnabled ? '#FFFFFF' : '#f4f3f4'}
+            />
           </View>
         </View>
 
@@ -295,5 +372,26 @@ const styles = StyleSheet.create({
   infoText: {
     fontSize: 14,
     marginBottom: 4,
+  },
+  settingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  settingInfo: {
+    flex: 1,
+    marginRight: 16,
+  },
+  settingLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  settingDescription: {
+    fontSize: 13,
+    lineHeight: 18,
   },
 });

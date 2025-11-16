@@ -18,6 +18,7 @@ import {
 import { saveGame } from '../utils/gameSaveService';
 import { CardComponent } from '../components/CardComponent';
 import { Card } from '../types/game';
+import { triggerHaptic } from '../utils/hapticManager';
 
 interface HeartsScreenProps {
   gameId: string;
@@ -36,6 +37,7 @@ export const HeartsScreen: React.FC<HeartsScreenProps> = ({
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
 
   const handleExitWithSave = async () => {
+    await triggerHaptic.buttonTap();
     if (gameState && gameState.gameStatus === 'playing') {
       await saveGame('custom', gameState, 4);
     }
@@ -62,15 +64,17 @@ export const HeartsScreen: React.FC<HeartsScreenProps> = ({
   const humanPlayer = gameState.players[0]; // Player 1 is human
   const isMyTurn = gameState.currentTurn === 0;
 
-  const handleCardClick = (card: Card) => {
+  const handleCardClick = async (card: Card) => {
     if (!isMyTurn) return;
 
     const validation = canPlayCard(gameState, humanPlayer, card);
     if (!validation.valid) {
+      await triggerHaptic.error();
       Alert.alert('Invalid Move', validation.reason);
       return;
     }
 
+    await triggerHaptic.cardPlay();
     const newState = playCard(gameState, 0, card);
     if (newState) {
       setGameState(newState);
@@ -78,6 +82,7 @@ export const HeartsScreen: React.FC<HeartsScreenProps> = ({
 
       // Check game state
       if (newState.gameStatus === 'roundEnd') {
+        await triggerHaptic.success();
         Alert.alert(
           'Round Complete!',
           gameState.players.map((p, i) => `${p.name}: ${p.score} pts (Total: ${p.totalScore})`).join('\n'),
@@ -89,6 +94,7 @@ export const HeartsScreen: React.FC<HeartsScreenProps> = ({
           ]
         );
       } else if (newState.gameStatus === 'gameEnd') {
+        await triggerHaptic.win();
         const winner = newState.players[newState.winner!];
         Alert.alert(
           'Game Over!',

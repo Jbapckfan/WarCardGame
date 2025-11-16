@@ -25,6 +25,7 @@ import { getAvailableRooms, createGameRoom, joinGameRoom } from '../utils/fireba
 import { registerForPushNotificationsAsync } from '../utils/notificationService';
 import { database } from '../config/firebase';
 import { hasSavedGame, loadGame, clearSavedGame, SavedGame } from '../utils/gameSaveService';
+import { triggerHaptic } from '../utils/hapticManager';
 
 interface MenuScreenProps {
   onStartGame: (gameId: string, playerId: string, gameType: 'war' | 'ers' | 'uno' | 'phase10' | 'kings' | 'gofish' | 'solitaire' | 'hearts', playerCount?: number, resumeState?: any) => void;
@@ -177,7 +178,10 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
   return (
     <LinearGradient colors={theme.colors.backgroundGradient} style={styles.container}>
       {/* Settings Button */}
-      <TouchableOpacity style={styles.settingsButton} onPress={onOpenSettings}>
+      <TouchableOpacity style={styles.settingsButton} onPress={async () => {
+        await triggerHaptic.buttonTap();
+        onOpenSettings();
+      }}>
         <Text style={[styles.settingsText, { color: theme.colors.primary }]}>⚙️</Text>
       </TouchableOpacity>
 
@@ -225,7 +229,10 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
         <View style={styles.buttonContainer}>
           <TouchableOpacity
             style={[styles.gameButton, styles.customButton]}
-            onPress={onOpenCustomCreator}
+            onPress={async () => {
+              await triggerHaptic.buttonTap();
+              onOpenCustomCreator();
+            }}
           >
             <Text style={styles.gameButtonTitle}>🎲 CUSTOM GAMES</Text>
             <Text style={styles.gameButtonSubtitle}>Create your own rules!</Text>
@@ -233,7 +240,10 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
 
           <TouchableOpacity
             style={[styles.gameButton, styles.unoButton]}
-            onPress={() => setShowUnoMenu(true)}
+            onPress={async () => {
+              await triggerHaptic.buttonTap();
+              setShowUnoMenu(true);
+            }}
           >
             <Text style={styles.gameButtonTitle}>🎯 UNO</Text>
             <Text style={styles.gameButtonSubtitle}>Match colors & numbers</Text>
@@ -241,7 +251,10 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
 
           <TouchableOpacity
             style={[styles.gameButton, styles.phase10Button]}
-            onPress={() => setShowPhase10Menu(true)}
+            onPress={async () => {
+              await triggerHaptic.buttonTap();
+              setShowPhase10Menu(true);
+            }}
           >
             <Text style={styles.gameButtonTitle}>🎲 PHASE 10</Text>
             <Text style={styles.gameButtonSubtitle}>Complete all 10 phases</Text>
@@ -249,7 +262,10 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
 
           <TouchableOpacity
             style={[styles.gameButton, styles.warButton]}
-            onPress={() => setShowWarMenu(true)}
+            onPress={async () => {
+              await triggerHaptic.buttonTap();
+              setShowWarMenu(true);
+            }}
           >
             <Text style={styles.gameButtonTitle}>⚔️ WAR</Text>
             <Text style={styles.gameButtonSubtitle}>Classic battle</Text>
@@ -257,7 +273,10 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
 
           <TouchableOpacity
             style={[styles.gameButton, styles.ersButton]}
-            onPress={() => setShowERSMenu(true)}
+            onPress={async () => {
+              await triggerHaptic.buttonTap();
+              setShowERSMenu(true);
+            }}
           >
             <Text style={styles.gameButtonTitle}>👋 EGYPTIAN RAT SCREW</Text>
             <Text style={styles.gameButtonSubtitle}>Fast reflexes required</Text>
@@ -267,6 +286,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
             style={[styles.gameButton, styles.kingsButton]}
             onPress={() => {
               const checkAndStart = async () => {
+                await triggerHaptic.buttonTap();
                 const saved = await loadGame('kings');
                 if (saved) {
                   setSavedGame(saved);
@@ -286,7 +306,10 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
 
           <TouchableOpacity
             style={[styles.gameButton, styles.goFishButton]}
-            onPress={() => setShowGoFishMenu(true)}
+            onPress={async () => {
+              await triggerHaptic.buttonTap();
+              setShowGoFishMenu(true);
+            }}
           >
             <Text style={styles.gameButtonTitle}>🐟 GO FISH</Text>
             <Text style={styles.gameButtonSubtitle}>Perfect for kids!</Text>
@@ -294,7 +317,8 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
 
           <TouchableOpacity
             style={[styles.gameButton, styles.solitaireButton]}
-            onPress={() => {
+            onPress={async () => {
+              await triggerHaptic.buttonTap();
               const gameId = `local_${Date.now()}`;
               onStartGame(gameId, playerId, 'solitaire', 1);
             }}
@@ -305,7 +329,8 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
 
           <TouchableOpacity
             style={[styles.gameButton, styles.heartsButton]}
-            onPress={() => {
+            onPress={async () => {
+              await triggerHaptic.buttonTap();
               const gameId = `local_${Date.now()}`;
               onStartGame(gameId, playerId, 'hearts', 4);
             }}
@@ -327,7 +352,10 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
 
             <TouchableOpacity
               style={[styles.toggleContainer, { backgroundColor: theme.colors.background }]}
-              onPress={() => setSixSevenRule(!sixSevenRule)}
+              onPress={async () => {
+                await triggerHaptic.buttonTap();
+                setSixSevenRule(!sixSevenRule);
+              }}
             >
               <View style={[styles.toggle, sixSevenRule && { backgroundColor: theme.colors.success }]}>
                 <View style={[styles.toggleButton, sixSevenRule && styles.toggleButtonActive]} />
@@ -340,7 +368,8 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
 
             <TouchableOpacity
               style={[styles.modalButton, { backgroundColor: theme.colors.success }]}
-              onPress={() => {
+              onPress={async () => {
+                await triggerHaptic.buttonTap();
                 setShowWarMenu(false);
                 handleCreateGame('war');
               }}
@@ -350,7 +379,8 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
 
             <TouchableOpacity
               style={[styles.modalButton, styles.secondaryButton, { backgroundColor: theme.colors.secondary }]}
-              onPress={() => {
+              onPress={async () => {
+                await triggerHaptic.buttonTap();
                 setShowWarMenu(false);
                 openJoinMenu('war');
               }}
@@ -360,7 +390,10 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
 
             <TouchableOpacity
               style={styles.cancelButton}
-              onPress={() => setShowWarMenu(false)}
+              onPress={async () => {
+                await triggerHaptic.buttonTap();
+                setShowWarMenu(false);
+              }}
             >
               <Text style={[styles.cancelButtonText, { color: theme.colors.textSecondary }]}>Cancel</Text>
             </TouchableOpacity>
@@ -382,7 +415,8 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
 
             <TouchableOpacity
               style={[styles.modalButton, { backgroundColor: theme.colors.success }]}
-              onPress={() => {
+              onPress={async () => {
+                await triggerHaptic.buttonTap();
                 setShowERSMenu(false);
                 handleCreateGame('ers');
               }}
@@ -392,7 +426,8 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
 
             <TouchableOpacity
               style={[styles.modalButton, styles.secondaryButton, { backgroundColor: theme.colors.secondary }]}
-              onPress={() => {
+              onPress={async () => {
+                await triggerHaptic.buttonTap();
                 setShowERSMenu(false);
                 openJoinMenu('ers');
               }}
@@ -402,7 +437,10 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
 
             <TouchableOpacity
               style={styles.cancelButton}
-              onPress={() => setShowERSMenu(false)}
+              onPress={async () => {
+                await triggerHaptic.buttonTap();
+                setShowERSMenu(false);
+              }}
             >
               <Text style={[styles.cancelButtonText, { color: theme.colors.textSecondary }]}>Cancel</Text>
             </TouchableOpacity>
@@ -424,7 +462,8 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
 
             <TouchableOpacity
               style={[styles.modalButton, { backgroundColor: theme.colors.success }]}
-              onPress={() => {
+              onPress={async () => {
+                await triggerHaptic.buttonTap();
                 setShowUnoMenu(false);
                 handleCreateGame('uno');
               }}
@@ -434,7 +473,10 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
 
             <TouchableOpacity
               style={styles.cancelButton}
-              onPress={() => setShowUnoMenu(false)}
+              onPress={async () => {
+                await triggerHaptic.buttonTap();
+                setShowUnoMenu(false);
+              }}
             >
               <Text style={[styles.cancelButtonText, { color: theme.colors.textSecondary }]}>Cancel</Text>
             </TouchableOpacity>
@@ -456,7 +498,8 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
 
             <TouchableOpacity
               style={[styles.modalButton, { backgroundColor: theme.colors.success }]}
-              onPress={() => {
+              onPress={async () => {
+                await triggerHaptic.buttonTap();
                 setShowPhase10Menu(false);
                 handleCreateGame('phase10');
               }}
@@ -466,7 +509,10 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
 
             <TouchableOpacity
               style={styles.cancelButton}
-              onPress={() => setShowPhase10Menu(false)}
+              onPress={async () => {
+                await triggerHaptic.buttonTap();
+                setShowPhase10Menu(false);
+              }}
             >
               <Text style={[styles.cancelButtonText, { color: theme.colors.textSecondary }]}>Cancel</Text>
             </TouchableOpacity>
@@ -488,7 +534,8 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
 
             <TouchableOpacity
               style={[styles.modalButton, { backgroundColor: theme.colors.success }]}
-              onPress={() => {
+              onPress={async () => {
+                await triggerHaptic.buttonTap();
                 setShowKingsMenu(false);
                 const gameId = `local_${Date.now()}`;
                 onStartGame(gameId, playerId, 'kings', 2);
@@ -499,7 +546,10 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
 
             <TouchableOpacity
               style={styles.cancelButton}
-              onPress={() => setShowKingsMenu(false)}
+              onPress={async () => {
+                await triggerHaptic.buttonTap();
+                setShowKingsMenu(false);
+              }}
             >
               <Text style={[styles.cancelButtonText, { color: theme.colors.textSecondary }]}>Cancel</Text>
             </TouchableOpacity>
@@ -530,7 +580,10 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
                       { borderColor: theme.colors.primary },
                       playerCount === count && { backgroundColor: theme.colors.primary }
                     ]}
-                    onPress={() => setPlayerCount(count)}
+                    onPress={async () => {
+                      await triggerHaptic.buttonTap();
+                      setPlayerCount(count);
+                    }}
                   >
                     <Text style={[
                       styles.playerCountButtonText,
@@ -543,7 +596,8 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
 
             <TouchableOpacity
               style={[styles.modalButton, { backgroundColor: theme.colors.success }]}
-              onPress={() => {
+              onPress={async () => {
+                await triggerHaptic.buttonTap();
                 setShowGoFishMenu(false);
                 const gameId = `local_${Date.now()}`;
                 onStartGame(gameId, playerId, 'gofish', playerCount);
@@ -554,7 +608,10 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
 
             <TouchableOpacity
               style={styles.cancelButton}
-              onPress={() => setShowGoFishMenu(false)}
+              onPress={async () => {
+                await triggerHaptic.buttonTap();
+                setShowGoFishMenu(false);
+              }}
             >
               <Text style={[styles.cancelButtonText, { color: theme.colors.textSecondary }]}>Cancel</Text>
             </TouchableOpacity>
@@ -586,7 +643,10 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
               />
               <TouchableOpacity
                 style={[styles.smallButton, { backgroundColor: theme.colors.secondary }]}
-                onPress={() => handleJoinGame(roomCode)}
+                onPress={async () => {
+                  await triggerHaptic.buttonTap();
+                  handleJoinGame(roomCode);
+                }}
               >
                 <Text style={styles.modalButtonText}>Join with Code</Text>
               </TouchableOpacity>
@@ -601,7 +661,8 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
                   <TouchableOpacity
                     key={room.id}
                     style={[styles.roomItem, { backgroundColor: theme.colors.background }]}
-                    onPress={() => {
+                    onPress={async () => {
+                      await triggerHaptic.buttonTap();
                       setShowJoinMenu(false);
                       handleJoinGame(room.id);
                     }}
@@ -620,7 +681,10 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
 
             <TouchableOpacity
               style={styles.cancelButton}
-              onPress={() => setShowJoinMenu(false)}
+              onPress={async () => {
+                await triggerHaptic.buttonTap();
+                setShowJoinMenu(false);
+              }}
             >
               <Text style={[styles.cancelButtonText, { color: theme.colors.textSecondary }]}>Cancel</Text>
             </TouchableOpacity>
@@ -661,7 +725,12 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
                       { borderColor: theme.colors.primary },
                       playerCount === count && { backgroundColor: theme.colors.primary }
                     ]}
-                    onPress={() => setPlayerCount(count)}
+                    onPress={async () => {
+                      if (!savedGame) {
+                        await triggerHaptic.buttonTap();
+                        setPlayerCount(count);
+                      }
+                    }}
                     disabled={!!savedGame} // Can't change player count for saved games
                   >
                     <Text style={[
@@ -682,7 +751,10 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
             {savedGame && (
               <TouchableOpacity
                 style={[styles.modalButton, { backgroundColor: theme.colors.success }]}
-                onPress={handleResumeGame}
+                onPress={async () => {
+                  await triggerHaptic.buttonTap();
+                  handleResumeGame();
+                }}
               >
                 <Text style={styles.modalButtonText}>▶️ Resume Game</Text>
               </TouchableOpacity>
@@ -690,14 +762,18 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
 
             <TouchableOpacity
               style={[styles.modalButton, { backgroundColor: theme.colors.secondary }]}
-              onPress={handleNewGame}
+              onPress={async () => {
+                await triggerHaptic.buttonTap();
+                handleNewGame();
+              }}
             >
               <Text style={styles.modalButtonText}>🆕 New Game</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.cancelButton}
-              onPress={() => {
+              onPress={async () => {
+                await triggerHaptic.buttonTap();
                 setShowSaveModal(false);
                 setSavedGame(null);
                 setPendingGameType(null);
