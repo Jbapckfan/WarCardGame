@@ -27,7 +27,7 @@ import { database } from '../config/firebase';
 import { hasSavedGame, loadGame, clearSavedGame, SavedGame } from '../utils/gameSaveService';
 
 interface MenuScreenProps {
-  onStartGame: (gameId: string, playerId: string, gameType: 'war' | 'ers' | 'uno' | 'phase10' | 'kings', playerCount?: number, resumeState?: any) => void;
+  onStartGame: (gameId: string, playerId: string, gameType: 'war' | 'ers' | 'uno' | 'phase10' | 'kings' | 'gofish' | 'solitaire' | 'hearts', playerCount?: number, resumeState?: any) => void;
   onOpenCustomCreator: () => void;
   onOpenSettings: () => void;
 }
@@ -42,15 +42,18 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
   const [showUnoMenu, setShowUnoMenu] = useState(false);
   const [showPhase10Menu, setShowPhase10Menu] = useState(false);
   const [showKingsMenu, setShowKingsMenu] = useState(false);
+  const [showGoFishMenu, setShowGoFishMenu] = useState(false);
+  const [showSolitaireMenu, setShowSolitaireMenu] = useState(false);
+  const [showHeartsMenu, setShowHeartsMenu] = useState(false);
   const [showJoinMenu, setShowJoinMenu] = useState(false);
   const [sixSevenRule, setSixSevenRule] = useState(true);
   const [availableRooms, setAvailableRooms] = useState<GameRoom[]>([]);
   const [roomCode, setRoomCode] = useState('');
-  const [gameType, setGameType] = useState<'war' | 'ers' | 'uno' | 'phase10' | 'kings'>('war');
+  const [gameType, setGameType] = useState<'war' | 'ers' | 'uno' | 'phase10' | 'kings' | 'gofish' | 'solitaire' | 'hearts'>('war');
   const [playerCount, setPlayerCount] = useState(2);
   const [savedGame, setSavedGame] = useState<SavedGame | null>(null);
   const [showSaveModal, setShowSaveModal] = useState(false);
-  const [pendingGameType, setPendingGameType] = useState<'war' | 'ers' | 'uno' | 'phase10' | 'kings' | null>(null);
+  const [pendingGameType, setPendingGameType] = useState<'war' | 'ers' | 'uno' | 'phase10' | 'kings' | 'gofish' | 'solitaire' | 'hearts' | null>(null);
 
   const titleScale = useSharedValue(1);
   const titleRotate = useSharedValue(0);
@@ -280,6 +283,36 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
             <Text style={styles.gameButtonTitle}>👑 KINGS IN THE CORNERS</Text>
             <Text style={styles.gameButtonSubtitle}>Strategic solitaire game</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.gameButton, styles.goFishButton]}
+            onPress={() => setShowGoFishMenu(true)}
+          >
+            <Text style={styles.gameButtonTitle}>🐟 GO FISH</Text>
+            <Text style={styles.gameButtonSubtitle}>Perfect for kids!</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.gameButton, styles.solitaireButton]}
+            onPress={() => {
+              const gameId = `local_${Date.now()}`;
+              onStartGame(gameId, playerId, 'solitaire', 1);
+            }}
+          >
+            <Text style={styles.gameButtonTitle}>♠️ SOLITAIRE</Text>
+            <Text style={styles.gameButtonSubtitle}>Classic Klondike</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.gameButton, styles.heartsButton]}
+            onPress={() => {
+              const gameId = `local_${Date.now()}`;
+              onStartGame(gameId, playerId, 'hearts', 4);
+            }}
+          >
+            <Text style={styles.gameButtonTitle}>♥️ HEARTS</Text>
+            <Text style={styles.gameButtonSubtitle}>4-player trick-taking</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
@@ -467,6 +500,61 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onOpenCusto
             <TouchableOpacity
               style={styles.cancelButton}
               onPress={() => setShowKingsMenu(false)}
+            >
+              <Text style={[styles.cancelButtonText, { color: theme.colors.textSecondary }]}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Go Fish Menu Modal */}
+      <Modal visible={showGoFishMenu} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, {
+            backgroundColor: theme.colors.cardPile,
+            borderColor: theme.colors.primary
+          }]}>
+            <Text style={[styles.modalTitle, { color: theme.colors.primary }]}>Go Fish</Text>
+            <Text style={[styles.modalDescription, { color: theme.colors.textSecondary }]}>
+              Ask for cards and collect books! Perfect for 2-6 players.
+            </Text>
+
+            <View style={styles.playerCountSection}>
+              <Text style={[styles.sectionLabel, { color: theme.colors.text }]}>Number of Players:</Text>
+              <View style={styles.playerCountButtons}>
+                {[2, 3, 4].map((count) => (
+                  <TouchableOpacity
+                    key={count}
+                    style={[
+                      styles.playerCountButton,
+                      { borderColor: theme.colors.primary },
+                      playerCount === count && { backgroundColor: theme.colors.primary }
+                    ]}
+                    onPress={() => setPlayerCount(count)}
+                  >
+                    <Text style={[
+                      styles.playerCountButtonText,
+                      { color: playerCount === count ? '#FFFFFF' : theme.colors.text }
+                    ]}>{count}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.modalButton, { backgroundColor: theme.colors.success }]}
+              onPress={() => {
+                setShowGoFishMenu(false);
+                const gameId = `local_${Date.now()}`;
+                onStartGame(gameId, playerId, 'gofish', playerCount);
+              }}
+            >
+              <Text style={styles.modalButtonText}>Start Game</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => setShowGoFishMenu(false)}
             >
               <Text style={[styles.cancelButtonText, { color: theme.colors.textSecondary }]}>Cancel</Text>
             </TouchableOpacity>
@@ -731,6 +819,15 @@ const styles = StyleSheet.create({
   },
   kingsButton: {
     backgroundColor: '#047857',
+  },
+  goFishButton: {
+    backgroundColor: '#0C4A6E',
+  },
+  solitaireButton: {
+    backgroundColor: '#064E3B',
+  },
+  heartsButton: {
+    backgroundColor: '#991B1B',
   },
   gameButtonTitle: {
     fontSize: 28,
