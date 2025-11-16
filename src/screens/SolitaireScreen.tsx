@@ -21,6 +21,7 @@ import { saveGame } from '../utils/gameSaveService';
 import { CardComponent } from '../components/CardComponent';
 import { Card } from '../types/game';
 import { triggerHaptic } from '../utils/hapticManager';
+import { ConfettiCelebration } from '../components/ConfettiCelebration';
 
 interface SolitaireScreenProps {
   gameId: string;
@@ -42,6 +43,7 @@ export const SolitaireScreen: React.FC<SolitaireScreenProps> = ({
     index: number;
     cardIndex?: number;
   } | null>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   const handleExitWithSave = async () => {
     await triggerHaptic.buttonTap();
@@ -94,6 +96,7 @@ export const SolitaireScreen: React.FC<SolitaireScreenProps> = ({
         // Check for win
         if (checkSolitaireWin(newState)) {
           await triggerHaptic.win();
+          setShowConfetti(true);
           newState.gameStatus = 'won';
           newState.endTime = Date.now();
           const finalScore = calculateScore(newState);
@@ -134,6 +137,7 @@ export const SolitaireScreen: React.FC<SolitaireScreenProps> = ({
       // Check for win
       if (checkSolitaireWin(newState)) {
         await triggerHaptic.win();
+        setShowConfetti(true);
         newState.gameStatus = 'won';
         newState.endTime = Date.now();
         const finalScore = calculateScore(newState);
@@ -326,6 +330,9 @@ export const SolitaireScreen: React.FC<SolitaireScreenProps> = ({
           <Text style={styles.autoMoveButtonText}>⚡ Auto-Move to Foundation</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Confetti Celebration */}
+      <ConfettiCelebration show={showConfetti} />
     </LinearGradient>
   );
 };

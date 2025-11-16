@@ -19,6 +19,7 @@ import { saveGame } from '../utils/gameSaveService';
 import { CardComponent } from '../components/CardComponent';
 import { Card } from '../types/game';
 import { triggerHaptic } from '../utils/hapticManager';
+import { ConfettiCelebration } from '../components/ConfettiCelebration';
 
 interface HeartsScreenProps {
   gameId: string;
@@ -35,6 +36,7 @@ export const HeartsScreen: React.FC<HeartsScreenProps> = ({
 }) => {
   const [gameState, setGameState] = useState<HeartsGameState | null>(resumeState || null);
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   const handleExitWithSave = async () => {
     await triggerHaptic.buttonTap();
@@ -95,6 +97,7 @@ export const HeartsScreen: React.FC<HeartsScreenProps> = ({
         );
       } else if (newState.gameStatus === 'gameEnd') {
         await triggerHaptic.win();
+        setShowConfetti(true);
         const winner = newState.players[newState.winner!];
         Alert.alert(
           'Game Over!',
@@ -182,6 +185,9 @@ export const HeartsScreen: React.FC<HeartsScreenProps> = ({
       <View style={styles.infoBar}>
         <Text style={styles.infoText}>{gameState.lastAction}</Text>
       </View>
+
+      {/* Confetti Celebration */}
+      <ConfettiCelebration show={showConfetti} />
     </LinearGradient>
   );
 };

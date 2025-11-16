@@ -19,6 +19,7 @@ import {
 import { saveGame } from '../utils/gameSaveService';
 import { CardComponent } from '../components/CardComponent';
 import { triggerHaptic } from '../utils/hapticManager';
+import { ConfettiCelebration } from '../components/ConfettiCelebration';
 
 interface GoFishScreenProps {
   gameId: string;
@@ -38,6 +39,7 @@ export const GoFishScreen: React.FC<GoFishScreenProps> = ({
   const [gameState, setGameState] = useState<GoFishGameState | null>(resumeState || null);
   const [selectedRank, setSelectedRank] = useState<number | null>(null);
   const [showPlayerSelect, setShowPlayerSelect] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   const handleExitWithSave = async () => {
     await triggerHaptic.buttonTap();
@@ -109,6 +111,7 @@ export const GoFishScreen: React.FC<GoFishScreenProps> = ({
     const winnerId = checkGoFishWinner(newState);
     if (winnerId !== null) {
       await triggerHaptic.win();
+      setShowConfetti(true);
       newState.gameStatus = 'finished';
       newState.winner = winnerId;
       setGameState(newState);
@@ -248,6 +251,9 @@ export const GoFishScreen: React.FC<GoFishScreenProps> = ({
           </View>
         </View>
       </Modal>
+
+      {/* Confetti Celebration */}
+      <ConfettiCelebration show={showConfetti} />
     </LinearGradient>
   );
 };
