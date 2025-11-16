@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -18,6 +18,8 @@ interface CardComponentProps {
   scale?: number;
   slideIn?: boolean;
   delay?: number;
+  selected?: boolean;
+  onPress?: () => void;
 }
 
 export const CardComponent: React.FC<CardComponentProps> = ({
@@ -27,11 +29,15 @@ export const CardComponent: React.FC<CardComponentProps> = ({
   scale = 1,
   slideIn = false,
   delay = 0,
+  selected = false,
+  onPress,
 }) => {
   const rotation = useSharedValue(faceDown ? 180 : 0);
   const scaleValue = useSharedValue(slideIn ? 0.8 : 1);
   const translateY = useSharedValue(slideIn ? -50 : 0);
   const opacity = useSharedValue(slideIn ? 0 : 1);
+  const glowIntensity = useSharedValue(selected ? 1 : 0);
+  const shadowElevation = useSharedValue(selected ? 12 : 6);
 
   useEffect(() => {
     if (animated) {
@@ -59,6 +65,26 @@ export const CardComponent: React.FC<CardComponentProps> = ({
     });
   }, [faceDown]);
 
+  useEffect(() => {
+    // Animate selection state with glow and elevation
+    glowIntensity.value = withSpring(selected ? 1 : 0, {
+      damping: 12,
+      stiffness: 120,
+    });
+    shadowElevation.value = withSpring(selected ? 12 : 6, {
+      damping: 10,
+      stiffness: 100,
+    });
+    if (selected) {
+      scaleValue.value = withSequence(
+        withSpring(1.05, { damping: 10, stiffness: 150 }),
+        withSpring(1.02, { damping: 12, stiffness: 140 })
+      );
+    } else {
+      scaleValue.value = withSpring(1, { damping: 12, stiffness: 120 });
+    }
+  }, [selected]);
+
   const animatedStyle = useAnimatedStyle(() => {
     return {
       transform: [
@@ -70,12 +96,32 @@ export const CardComponent: React.FC<CardComponentProps> = ({
     };
   });
 
+  const containerAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      shadowOpacity: 0.2 + (shadowElevation.value / 100),
+      shadowRadius: shadowElevation.value,
+      elevation: shadowElevation.value,
+    };
+  });
+
+  const glowStyle = useAnimatedStyle(() => {
+    return {
+      opacity: glowIntensity.value * 0.6,
+    };
+  });
+
   const suitColor = getSuitColor(card.suit);
   const rankName = getRankName(card.rank);
   const suitSymbol = getSuitSymbol(card.suit);
+  const isFaceCard = card.rank >= 11; // Jack, Queen, King
 
-  return (
-    <Animated.View style={[styles.cardContainer, animatedStyle]}>
+  const cardContent = (
+    <Animated.View style={[styles.cardContainer, containerAnimatedStyle, animatedStyle]}>
+      {/* Selection Glow Effect */}
+      {selected && !faceDown && (
+        <Animated.View style={[styles.glowEffect, glowStyle]} />
+      )}
+
       <View style={[styles.card, faceDown && styles.cardBack]}>
         {faceDown ? (
           <LinearGradient
@@ -93,16 +139,64 @@ export const CardComponent: React.FC<CardComponentProps> = ({
           </LinearGradient>
         ) : (
           <>
+            {/* Premium gradient overlay */}
+            <LinearGradient
+              colors={['rgba(255,255,255,0.9)', 'rgba(248,248,248,1)', 'rgba(245,245,245,1)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+              style={styles.cardFaceGradient}
+            />
+
             <View style={styles.cardBorder} />
+
+            {/* Holographic shine for face cards */}
+            {isFaceCard && (
+              <LinearGradient
+                colors={['transparent', 'rgba(255,215,0,0.15)', 'transparent']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.holographicShine}
+              />
+            )}
+
             <View style={styles.cardFront}>
               <View style={styles.cornerTop}>
                 <Text style={[styles.rank, { color: suitColor }]}>{rankName}</Text>
-                <Text style={[styles.suitSmall, { color: suitColor }]}>{suitSymbol}</Text>
+                <LinearGradient
+                  colors={suitColor === '#DC2626'
+                    ? ['#DC2626', '#B91C1C', '#991B1B']
+                    : ['#1F2937', '#111827', '#000000']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.suitGradientContainer}
+                >
+                  <Text style={[styles.suitSmall, { color: '#FFFFFF' }]}>{suitSymbol}</Text>
+                </LinearGradient>
               </View>
-              <Text style={[styles.suitLarge, { color: suitColor }]}>{suitSymbol}</Text>
+
+              <LinearGradient
+                colors={suitColor === '#DC2626'
+                  ? ['#DC2626', '#B91C1C', '#991B1B']
+                  : ['#1F2937', '#111827', '#000000']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.suitLargeGradient}
+              >
+                <Text style={[styles.suitLarge, { color: '#FFFFFF' }]}>{suitSymbol}</Text>
+              </LinearGradient>
+
               <View style={styles.cornerBottom}>
                 <Text style={[styles.rank, { color: suitColor }]}>{rankName}</Text>
-                <Text style={[styles.suitSmall, { color: suitColor }]}>{suitSymbol}</Text>
+                <LinearGradient
+                  colors={suitColor === '#DC2626'
+                    ? ['#DC2626', '#B91C1C', '#991B1B']
+                    : ['#1F2937', '#111827', '#000000']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.suitGradientContainer}
+                >
+                  <Text style={[styles.suitSmall, { color: '#FFFFFF' }]}>{suitSymbol}</Text>
+                </LinearGradient>
               </View>
             </View>
           </>
@@ -110,6 +204,16 @@ export const CardComponent: React.FC<CardComponentProps> = ({
       </View>
     </Animated.View>
   );
+
+  if (onPress) {
+    return (
+      <TouchableOpacity activeOpacity={0.9} onPress={onPress}>
+        {cardContent}
+      </TouchableOpacity>
+    );
+  }
+
+  return cardContent;
 };
 
 const styles = StyleSheet.create({
@@ -126,6 +230,36 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: '#FFFFFF',
     overflow: 'hidden',
+  },
+  glowEffect: {
+    position: 'absolute',
+    top: -4,
+    left: -4,
+    right: -4,
+    bottom: -4,
+    borderRadius: 14,
+    backgroundColor: '#FFD700',
+    shadowColor: '#FFD700',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 12,
+    elevation: 20,
+  },
+  cardFaceGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 12,
+  },
+  holographicShine: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 12,
   },
   cardBorder: {
     position: 'absolute',
@@ -179,18 +313,33 @@ const styles = StyleSheet.create({
   rank: {
     fontSize: 20,
     fontWeight: '900',
-    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowColor: 'rgba(0, 0, 0, 0.15)',
     textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
+    textShadowRadius: 3,
+  },
+  suitGradientContainer: {
+    borderRadius: 8,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    marginTop: 2,
   },
   suitSmall: {
-    fontSize: 16,
-    marginTop: -2,
+    fontSize: 14,
+    fontWeight: 'bold',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  suitLargeGradient: {
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
   suitLarge: {
-    fontSize: 56,
-    textShadowColor: 'rgba(0, 0, 0, 0.1)',
-    textShadowOffset: { width: 2, height: 2 },
+    fontSize: 52,
+    fontWeight: 'bold',
+    textShadowColor: 'rgba(0, 0, 0, 0.4)',
+    textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
   },
 });
