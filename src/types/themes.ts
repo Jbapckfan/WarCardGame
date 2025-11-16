@@ -284,6 +284,130 @@ export const THEMES: Theme[] = [
       shadowColor: '#DC143C',
     },
   },
+
+  // Indiana Jones / Adventure Theme
+  {
+    id: 'indiana_jones',
+    name: 'Adventure',
+    emoji: '🗿',
+    description: 'Fortune and glory, kid',
+    colors: {
+      primary: '#D4AF37',
+      secondary: '#8B4513',
+      accent: '#CD853F',
+      background: '#3E2723',
+      backgroundGradient: ['#3E2723', '#5D4037', '#6D4C41'],
+      cardPile: '#4E342E',
+      cardBack: '#8B4513',
+      text: '#D4AF37',
+      textSecondary: '#BDB76B',
+      success: '#D4AF37',
+      error: '#8B0000',
+      warning: '#FFD700',
+    },
+    cardBack: {
+      type: 'image',
+      value: '#8B4513',
+      emoji: '🗿', // Ancient temple stone
+    },
+    buttonStyle: {
+      borderRadius: 8,
+      shadowColor: '#8B4513',
+    },
+  },
+
+  // Ocean / Nautical Theme
+  {
+    id: 'ocean',
+    name: 'Ocean',
+    emoji: '⚓',
+    description: 'Smooth sailing ahead',
+    colors: {
+      primary: '#00CED1',
+      secondary: '#1E90FF',
+      accent: '#FFD700',
+      background: '#003049',
+      backgroundGradient: ['#003049', '#004E7A', '#006B9E'],
+      cardPile: '#00384D',
+      cardBack: '#1E90FF',
+      text: '#FFFFFF',
+      textSecondary: '#87CEEB',
+      success: '#00CED1',
+      error: '#DC143C',
+      warning: '#FFD700',
+    },
+    cardBack: {
+      type: 'image',
+      value: '#1E90FF',
+      emoji: '⚓',
+    },
+    buttonStyle: {
+      borderRadius: 20,
+      shadowColor: '#00CED1',
+    },
+  },
+
+  // Casino / Vegas Theme
+  {
+    id: 'vegas',
+    name: 'Vegas',
+    emoji: '🎰',
+    description: 'What happens in Vegas...',
+    colors: {
+      primary: '#FF1744',
+      secondary: '#FFD700',
+      accent: '#FFFFFF',
+      background: '#1A0000',
+      backgroundGradient: ['#1A0000', '#2D0000', '#400000'],
+      cardPile: '#2D0000',
+      cardBack: '#8B0000',
+      text: '#FFD700',
+      textSecondary: '#FFA500',
+      success: '#00FF00',
+      error: '#FF1744',
+      warning: '#FFD700',
+    },
+    cardBack: {
+      type: 'image',
+      value: '#8B0000',
+      emoji: '💎',
+    },
+    buttonStyle: {
+      borderRadius: 24,
+      shadowColor: '#FFD700',
+    },
+  },
+
+  // Neon / Cyberpunk Theme
+  {
+    id: 'cyberpunk',
+    name: 'Cyberpunk',
+    emoji: '🌃',
+    description: 'Welcome to the future',
+    colors: {
+      primary: '#FF006E',
+      secondary: '#00F5FF',
+      accent: '#FFBE0B',
+      background: '#0A0A0A',
+      backgroundGradient: ['#0A0A0A', '#1A0F2E', '#2A1A4E'],
+      cardPile: '#1A0F2E',
+      cardBack: '#000000',
+      text: '#00F5FF',
+      textSecondary: '#FF006E',
+      success: '#00FF41',
+      error: '#FF006E',
+      warning: '#FFBE0B',
+    },
+    cardBack: {
+      type: 'image',
+      value: '#000000',
+      emoji: '⚡',
+    },
+    buttonStyle: {
+      borderRadius: 4,
+      shadowColor: '#00F5FF',
+    },
+  },
 ];
 
 export const getThemeById = (id: string): Theme => {
