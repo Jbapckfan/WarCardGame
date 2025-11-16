@@ -46,14 +46,20 @@ export interface Phase10GameState {
   id: string;
   player1: Phase10Player;
   player2: Phase10Player | null;
+  player3?: Phase10Player | null;
+  player4?: Phase10Player | null;
+  players: Phase10Player[]; // Array of all active players (2-4)
+  currentPlayerIndex: number; // Index in players array
   currentTurn: string;
-  gameStatus: 'waiting' | 'playing' | 'finished';
+  gameStatus: 'waiting' | 'playing' | 'round_end' | 'finished';
   discardPile: Phase10Card[];
   drawPile: Phase10Card[];
   lastAction: string;
   lastActionTime: number;
   winner: string | null;
   roundNumber: number;
+  hasDrawn: boolean; // Current player drew this turn
+  maxPlayers: number; // 2, 3, or 4
 }
 
 export interface Phase10GameRoom {
@@ -61,4 +67,5 @@ export interface Phase10GameRoom {
   createdBy: string;
   createdAt: number;
   playerCount: number;
+  maxPlayers: number; // 2, 3, or 4
 }

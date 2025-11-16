@@ -7,30 +7,44 @@ export interface KingsCard {
   color: 'red' | 'black';
 }
 
+export interface KingsPlayer {
+  id: string;
+  name: string;
+  deck: KingsCard[];
+  pushToken?: string;
+}
+
 export interface KingsGameState {
   id: string;
+  player1: KingsPlayer;
+  player2: KingsPlayer | null;
+  player3?: KingsPlayer | null;
+  player4?: KingsPlayer | null;
+  players: KingsPlayer[]; // Array of all active players (2-4)
   drawPile: KingsCard[];
 
   // 4 corner piles (NW, NE, SW, SE) - only Kings can start these
-  cornerNW: KingsCard[];
-  cornerNE: KingsCard[];
-  cornerSW: KingsCard[];
-  cornerSE: KingsCard[];
+  cornerPiles: [KingsCard[], KingsCard[], KingsCard[], KingsCard[]];
 
   // 4 side piles (N, E, S, W) - any card except King
-  sideN: KingsCard[];
-  sideE: KingsCard[];
-  sideS: KingsCard[];
-  sideW: KingsCard[];
+  sidePiles: [KingsCard[], KingsCard[], KingsCard[], KingsCard[]];
 
-  currentPlayerHand: KingsCard[];
+  currentPlayerIndex: number; // Index of current player
   playerCount: number;
-  currentTurn: number; // 0, 1, 2, or 3 for 4 players
-  gameStatus: 'playing' | 'finished';
+  maxPlayers: number; // 2, 3, or 4
+  gameStatus: 'waiting' | 'playing' | 'finished';
   winner: number | null;
   lastAction: string;
   lastActionTime: number;
-  moveCount: number;
+  hasDrawn: boolean; // Current player has drawn this turn
+}
+
+export interface KingsGameRoom {
+  id: string;
+  createdBy: string;
+  createdAt: number;
+  playerCount: number;
+  maxPlayers: number; // 2, 3, or 4
 }
 
 export interface PlayerInfo {
