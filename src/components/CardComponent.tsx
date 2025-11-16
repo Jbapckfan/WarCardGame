@@ -16,6 +16,8 @@ interface CardComponentProps {
   faceDown?: boolean;
   animated?: boolean;
   scale?: number;
+  slideIn?: boolean;
+  delay?: number;
 }
 
 export const CardComponent: React.FC<CardComponentProps> = ({
@@ -23,9 +25,13 @@ export const CardComponent: React.FC<CardComponentProps> = ({
   faceDown = false,
   animated = false,
   scale = 1,
+  slideIn = false,
+  delay = 0,
 }) => {
   const rotation = useSharedValue(faceDown ? 180 : 0);
-  const scaleValue = useSharedValue(1);
+  const scaleValue = useSharedValue(slideIn ? 0.8 : 1);
+  const translateY = useSharedValue(slideIn ? -50 : 0);
+  const opacity = useSharedValue(slideIn ? 0 : 1);
 
   useEffect(() => {
     if (animated) {
@@ -36,12 +42,31 @@ export const CardComponent: React.FC<CardComponentProps> = ({
     }
   }, [animated]);
 
+  useEffect(() => {
+    if (slideIn) {
+      // Slide in from above with fade
+      scaleValue.value = withTiming(1, { duration: 300 });
+      translateY.value = withTiming(0, { duration: 400 });
+      opacity.value = withTiming(1, { duration: 300 });
+    }
+  }, [slideIn]);
+
+  useEffect(() => {
+    // Smooth flip animation when faceDown changes
+    rotation.value = withSpring(faceDown ? 180 : 0, {
+      damping: 15,
+      stiffness: 150,
+    });
+  }, [faceDown]);
+
   const animatedStyle = useAnimatedStyle(() => {
     return {
       transform: [
         { rotateY: `${rotation.value}deg` },
         { scale: scaleValue.value * scale },
+        { translateY: translateY.value },
       ],
+      opacity: opacity.value,
     };
   });
 
