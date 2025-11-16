@@ -113,7 +113,6 @@ export const CardComponent: React.FC<CardComponentProps> = ({
   const suitColor = getSuitColor(card.suit);
   const rankName = getRankName(card.rank);
   const suitSymbol = getSuitSymbol(card.suit);
-  const isFaceCard = card.rank >= 11; // Jack, Queen, King
 
   const cardContent = (
     <Animated.View style={[styles.cardContainer, containerAnimatedStyle, animatedStyle]}>
@@ -139,25 +138,7 @@ export const CardComponent: React.FC<CardComponentProps> = ({
           </LinearGradient>
         ) : (
           <>
-            {/* Premium gradient overlay */}
-            <LinearGradient
-              colors={['rgba(255,255,255,0.9)', 'rgba(248,248,248,1)', 'rgba(245,245,245,1)']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 0, y: 1 }}
-              style={styles.cardFaceGradient}
-            />
-
             <View style={styles.cardBorder} />
-
-            {/* Holographic shine for face cards */}
-            {isFaceCard && (
-              <LinearGradient
-                colors={['transparent', 'rgba(255,215,0,0.15)', 'transparent']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.holographicShine}
-              />
-            )}
 
             <View style={styles.cardFront}>
               <View style={styles.cornerTop}>
@@ -217,22 +198,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.8,
     shadowRadius: 12,
     elevation: 20,
-  },
-  cardFaceGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: 12,
-  },
-  holographicShine: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: 12,
   },
   cardBorder: {
     position: 'absolute',

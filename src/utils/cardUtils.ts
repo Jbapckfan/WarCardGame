@@ -52,10 +52,10 @@ export const getRankName = (rank: Rank): string => {
 
 export const getSuitSymbol = (suit: Suit): string => {
   switch (suit) {
-    case 'hearts': return '♥️';
-    case 'diamonds': return '♦️';
-    case 'clubs': return '♣️';
-    case 'spades': return '♠️';
+    case 'hearts': return '♥';
+    case 'diamonds': return '♦';
+    case 'clubs': return '♣';
+    case 'spades': return '♠';
   }
 };
 
