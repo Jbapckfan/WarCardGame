@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getDatabase, Database } from 'firebase/database';
+import { getAuth, Auth } from 'firebase/auth';
 
 // Firebase configuration from Firebase Console
 const firebaseConfig = {
@@ -14,14 +15,16 @@ const firebaseConfig = {
 };
 
 let database: Database | null = null;
+let auth: Auth | null = null;
 
 // Initialize Firebase
 try {
   const app = initializeApp(firebaseConfig);
   database = getDatabase(app);
+  auth = getAuth(app);
   console.log('✅ Firebase initialized successfully');
 } catch (error) {
   console.error('❌ Firebase initialization failed:', error);
 }
 
-export { database };
+export { database, auth };

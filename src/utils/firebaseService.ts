@@ -2,6 +2,12 @@ import { database } from '../config/firebase';
 import { ref, push, set, onValue, off, update, remove, get } from 'firebase/database';
 import { GameState, GameRoom, Player, Card } from '../types/game';
 import { createDeck, shuffleDeck, splitDeck } from './cardUtils';
+import { getCurrentUserId } from './authService';
+
+/**
+ * NOTE: All playerId parameters should be Firebase Auth UIDs
+ * Use getCurrentUserId() from authService to get the authenticated user ID
+ */
 
 export const createGameRoom = async (
   playerId: string,
