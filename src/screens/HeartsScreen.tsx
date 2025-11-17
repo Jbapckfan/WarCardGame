@@ -20,23 +20,56 @@ import { CardComponent } from '../components/CardComponent';
 import { Card } from '../types/game';
 import { triggerHaptic } from '../utils/hapticManager';
 import { ConfettiCelebration } from '../components/ConfettiCelebration';
+import {
+  listenToHeartsGameState,
+  playHeartsCard,
+  passHeartsCards,
+} from '../utils/heartsFirebaseService';
+import { initializeAuth, getCurrentUserId } from '../utils/authService';
 
 interface HeartsScreenProps {
   gameId: string;
-  playerId: string;
+  playerId?: string;
   resumeState?: HeartsGameState;
   onExit: () => void;
 }
 
 export const HeartsScreen: React.FC<HeartsScreenProps> = ({
   gameId,
-  playerId,
+  playerId: initialPlayerId,
   resumeState,
   onExit,
 }) => {
   const [gameState, setGameState] = useState<HeartsGameState | null>(resumeState || null);
+  const [currentUserId, setCurrentUserId] = useState<string>(initialPlayerId || '');
+  const [isFirebaseGame, setIsFirebaseGame] = useState<boolean>(false);
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
+  const [passingCards, setPassingCards] = useState<Card[]>([]);
   const [showConfetti, setShowConfetti] = useState(false);
+
+  // Initialize auth and determine if Firebase game
+  useEffect(() => {
+    const init = async () => {
+      await initializeAuth();
+      const userId = await getCurrentUserId();
+      setCurrentUserId(userId);
+      setIsFirebaseGame(!gameId.startsWith('local_'));
+    };
+    init();
+  }, [gameId]);
+
+  // Listen to Firebase game state
+  useEffect(() => {
+    if (!isFirebaseGame || !gameId) return;
+
+    const unsubscribe = listenToHeartsGameState(gameId, (state) => {
+      if (state) {
+        setGameState(state);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [gameId, isFirebaseGame]);
 
   const handleExitWithSave = async () => {
     await triggerHaptic.buttonTap();
@@ -46,13 +79,14 @@ export const HeartsScreen: React.FC<HeartsScreenProps> = ({
     onExit();
   };
 
+  // Initialize local games only
   useEffect(() => {
-    if (resumeState) return;
+    if (isFirebaseGame || resumeState || !currentUserId) return;
 
     const playerNames = ['You', 'Player 2', 'Player 3', 'Player 4'];
     const initialState = dealHeartsGame(gameId, playerNames);
     setGameState(initialState);
-  }, []);
+  }, [currentUserId, isFirebaseGame]);
 
   if (!gameState) {
     return (
@@ -62,14 +96,30 @@ export const HeartsScreen: React.FC<HeartsScreenProps> = ({
     );
   }
 
+  const myPlayerIndex = gameState.players.findIndex(p => p.id === currentUserId);
+  const myPlayer = gameState.players[myPlayerIndex];
   const currentPlayer = gameState.players[gameState.currentTurn];
-  const humanPlayer = gameState.players[0]; // Player 1 is human
-  const isMyTurn = gameState.currentTurn === 0;
+  const isMyTurn = myPlayerIndex === gameState.currentTurn;
 
   const handleCardClick = async (card: Card) => {
     if (!isMyTurn) return;
 
-    const validation = canPlayCard(gameState, humanPlayer, card);
+    // Firebase multiplayer
+    if (isFirebaseGame) {
+      try {
+        await playHeartsCard(gameId, currentUserId, card);
+        await triggerHaptic.cardPlay();
+        // State updates via listener
+        return;
+      } catch (error: any) {
+        await triggerHaptic.error();
+        Alert.alert('Invalid Move', error.message || 'Cannot play this card');
+        return;
+      }
+    }
+
+    // Local game logic
+    const validation = canPlayCard(gameState, myPlayer, card);
     if (!validation.valid) {
       await triggerHaptic.error();
       Alert.alert('Invalid Move', validation.reason);
@@ -77,7 +127,7 @@ export const HeartsScreen: React.FC<HeartsScreenProps> = ({
     }
 
     await triggerHaptic.cardPlay();
-    const newState = playCard(gameState, 0, card);
+    const newState = playCard(gameState, myPlayerIndex, card);
     if (newState) {
       setGameState(newState);
       setSelectedCard(null);
