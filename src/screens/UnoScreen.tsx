@@ -21,20 +21,53 @@ import {
   checkWinner,
 } from '../utils/unoLogic';
 import { saveGame } from '../utils/gameSaveService';
+import {
+  listenToUNOGameState,
+  playUNOCard,
+  drawUNOCard,
+  callUNO,
+} from '../utils/unoFirebaseService';
+import { initializeAuth, getCurrentUserId } from '../utils/authService';
 
 interface UnoScreenProps {
   gameId: string;
-  playerId: string;
+  playerId?: string;
   playerCount?: number;
   resumeState?: UnoGameState;
   onExit: () => void;
 }
 
-export const UnoScreen: React.FC<UnoScreenProps> = ({ gameId, playerId, playerCount = 2, resumeState, onExit }) => {
+export const UnoScreen: React.FC<UnoScreenProps> = ({ gameId, playerId: initialPlayerId, playerCount = 2, resumeState, onExit }) => {
   const [gameState, setGameState] = useState<UnoGameState | null>(resumeState || null);
+  const [currentUserId, setCurrentUserId] = useState<string>(initialPlayerId || '');
+  const [isFirebaseGame, setIsFirebaseGame] = useState<boolean>(false);
   const [selectedCard, setSelectedCard] = useState<UnoCard | null>(null);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showUnoButton, setShowUnoButton] = useState(false);
+
+  // Initialize auth and determine if Firebase game
+  useEffect(() => {
+    const init = async () => {
+      await initializeAuth();
+      const userId = await getCurrentUserId();
+      setCurrentUserId(userId);
+      setIsFirebaseGame(!gameId.startsWith('local_'));
+    };
+    init();
+  }, [gameId]);
+
+  // Listen to Firebase game state
+  useEffect(() => {
+    if (!isFirebaseGame || !gameId) return;
+
+    const unsubscribe = listenToUNOGameState(gameId, (state) => {
+      if (state) {
+        setGameState(state);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [gameId, isFirebaseGame]);
 
   const handleExitWithSave = async () => {
     if (gameState && gameState.gameStatus === 'playing') {
@@ -43,9 +76,10 @@ export const UnoScreen: React.FC<UnoScreenProps> = ({ gameId, playerId, playerCo
     onExit();
   };
 
+  // Initialize local games only
   useEffect(() => {
-    // Skip initialization if we're resuming from saved state
-    if (resumeState) return;
+    // Skip if Firebase game, resuming from saved state, or not initialized yet
+    if (isFirebaseGame || resumeState || !currentUserId) return;
 
     // Initialize local game
     const deck = shuffleUnoDeck(createUnoDeck());
@@ -68,7 +102,7 @@ export const UnoScreen: React.FC<UnoScreenProps> = ({ gameId, playerId, playerCo
     const initialState: UnoGameState = {
       id: gameId,
       player1: {
-        id: playerId,
+        id: currentUserId,
         name: 'You',
         hand: player1Hand,
       },
@@ -77,7 +111,7 @@ export const UnoScreen: React.FC<UnoScreenProps> = ({ gameId, playerId, playerCo
         name: 'AI',
         hand: player2Hand,
       },
-      currentTurn: playerId,
+      currentTurn: currentUserId,
       gameStatus: 'playing',
       direction: 1,
       discardPile: [firstCard],
@@ -91,14 +125,14 @@ export const UnoScreen: React.FC<UnoScreenProps> = ({ gameId, playerId, playerCo
     };
 
     setGameState(initialState);
-  }, [gameId, playerId]);
+  }, [currentUserId, isFirebaseGame]);
 
   useEffect(() => {
-    if (!gameState) return;
+    if (!gameState || !currentUserId) return;
 
     // Check if player has 1 card and should show UNO button
-    const player = gameState.player1.id === playerId ? gameState.player1 : gameState.player2!;
-    setShowUnoButton(player.hand.length === 1 && !gameState.saidUno[playerId]);
+    const player = gameState.player1.id === currentUserId ? gameState.player1 : gameState.player2!;
+    setShowUnoButton(player && player.hand.length === 1 && !gameState.saidUno[currentUserId]);
 
     // Check for winner
     const winnerId = checkWinner(gameState);
@@ -161,7 +195,7 @@ export const UnoScreen: React.FC<UnoScreenProps> = ({ gameId, playerId, playerCo
   };
 
   const handleCardSelect = (card: UnoCard) => {
-    if (!gameState || gameState.currentTurn !== playerId || gameState.gameStatus !== 'playing') {
+    if (!gameState || gameState.currentTurn !== currentUserId || gameState.gameStatus !== 'playing') {
       return;
     }
 
@@ -187,10 +221,27 @@ export const UnoScreen: React.FC<UnoScreenProps> = ({ gameId, playerId, playerCo
     playCard(card);
   };
 
-  const playCard = (card: UnoCard, chosenColor?: UnoColor) => {
+  const playCard = async (card: UnoCard, chosenColor?: UnoColor) => {
     if (!gameState) return;
 
-    const isPlayer1 = gameState.player1.id === playerId;
+    // Firebase multiplayer
+    if (isFirebaseGame) {
+      try {
+        await playUNOCard(gameId, currentUserId, card, chosenColor);
+        // State updates via listener
+        setShowColorPicker(false);
+        setSelectedCard(null);
+        return;
+      } catch (error: any) {
+        Alert.alert('Error', error.message || 'Failed to play card');
+        setShowColorPicker(false);
+        setSelectedCard(null);
+        return;
+      }
+    }
+
+    // Local game logic
+    const isPlayer1 = gameState.player1.id === currentUserId;
     const player = isPlayer1 ? gameState.player1 : gameState.player2!;
     const newHand = player.hand.filter(c => c.id !== card.id);
 
@@ -242,22 +293,53 @@ export const UnoScreen: React.FC<UnoScreenProps> = ({ gameId, playerId, playerCo
     });
   };
 
-  const handleDrawCard = () => {
-    if (!gameState || gameState.currentTurn !== playerId) return;
+  const handleDrawCard = async () => {
+    if (!gameState || gameState.currentTurn !== currentUserId) return;
 
+    // Firebase multiplayer
+    if (isFirebaseGame) {
+      try {
+        await drawUNOCard(gameId, currentUserId);
+        // State updates via listener
+        return;
+      } catch (error: any) {
+        Alert.alert('Error', error.message || 'Failed to draw card');
+        return;
+      }
+    }
+
+    // Local game logic
     if (gameState.mustDraw > 0) {
-      handleDrawCards(playerId, gameState.mustDraw);
+      handleDrawCards(currentUserId, gameState.mustDraw);
     } else {
-      handleDrawCards(playerId, 1);
+      handleDrawCards(currentUserId, 1);
     }
   };
 
-  const handleUnoCall = () => {
+  const handleCallUNO = async () => {
+    if (!gameState || !isFirebaseGame) return;
+
+    try {
+      await callUNO(gameId, currentUserId);
+      setShowUnoButton(false);
+    } catch (error: any) {
+      console.error('Call UNO error:', error);
+    }
+  };
+
+  const handleUnoCall = async () => {
     if (!gameState) return;
 
+    // Firebase multiplayer
+    if (isFirebaseGame) {
+      await handleCallUNO();
+      return;
+    }
+
+    // Local game
     setGameState({
       ...gameState,
-      saidUno: { ...gameState.saidUno, [playerId]: true },
+      saidUno: { ...gameState.saidUno, [currentUserId]: true },
     });
     setShowUnoButton(false);
   };
