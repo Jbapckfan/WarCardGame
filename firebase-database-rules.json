@@ -1,0 +1,42 @@
+{
+  "rules": {
+    "rooms": {
+      ".read": true,
+      ".write": true,
+      "$roomId": {
+        ".validate": "newData.hasChildren(['id', 'createdBy', 'createdAt', 'playerCount'])"
+      }
+    },
+    "games": {
+      ".read": true,
+      ".write": true,
+      "$gameId": {
+        ".validate": "newData.hasChildren(['id', 'player1', 'gameStatus'])"
+      }
+    },
+    "unoGames": {
+      ".read": true,
+      ".write": true
+    },
+    "ersGames": {
+      ".read": true,
+      ".write": true
+    },
+    "goFishGames": {
+      ".read": true,
+      ".write": true
+    },
+    "heartsGames": {
+      ".read": true,
+      ".write": true
+    },
+    "phase10Games": {
+      ".read": true,
+      ".write": true
+    },
+    "kingsCornersGames": {
+      ".read": true,
+      ".write": true
+    }
+  }
+}
