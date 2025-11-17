@@ -4,8 +4,10 @@ import { SafeAreaView, StyleSheet } from 'react-native';
 import { MenuScreen } from './src/screens/MenuScreen';
 import { GameScreen } from './src/screens/GameScreen';
 import { ERSScreen } from './src/screens/ERSScreen';
+import { Phase10Screen } from './src/screens/Phase10Screen';
+import { KingsCornersScreen } from './src/screens/KingsCornersScreen';
 
-type GameType = 'war' | 'ers' | null;
+type GameType = 'war' | 'ers' | 'phase10' | 'kings' | null;
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<'menu' | 'game'>('menu');
@@ -27,18 +29,30 @@ export default function App() {
     setGameType(null);
   };
 
+  const renderGameScreen = () => {
+    if (!gameId || !playerId) return null;
+
+    switch (gameType) {
+      case 'ers':
+        return <ERSScreen gameId={gameId} playerId={playerId} onExit={handleExitGame} />;
+      case 'phase10':
+        return <Phase10Screen gameId={gameId} playerId={playerId} onExit={handleExitGame} />;
+      case 'kings':
+        return <KingsCornersScreen gameId={gameId} playerId={playerId} onExit={handleExitGame} />;
+      case 'war':
+      default:
+        return <GameScreen gameId={gameId} playerId={playerId} onExit={handleExitGame} />;
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
       {currentScreen === 'menu' ? (
         <MenuScreen onStartGame={handleStartGame} />
-      ) : gameId && playerId ? (
-        gameType === 'ers' ? (
-          <ERSScreen gameId={gameId} playerId={playerId} onExit={handleExitGame} />
-        ) : (
-          <GameScreen gameId={gameId} playerId={playerId} onExit={handleExitGame} />
-        )
-      ) : null}
+      ) : (
+        renderGameScreen()
+      )}
     </SafeAreaView>
   );
 }

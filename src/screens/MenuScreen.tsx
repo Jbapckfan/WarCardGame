@@ -24,7 +24,7 @@ import { registerForPushNotificationsAsync } from '../utils/notificationService'
 import { database } from '../config/firebase';
 
 interface MenuScreenProps {
-  onStartGame: (gameId: string, playerId: string, gameType: 'war' | 'ers') => void;
+  onStartGame: (gameId: string, playerId: string, gameType: 'war' | 'ers' | 'phase10' | 'kings') => void;
 }
 
 export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
@@ -33,11 +33,13 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
   const [pushToken, setPushToken] = useState<string>();
   const [showWarMenu, setShowWarMenu] = useState(false);
   const [showERSMenu, setShowERSMenu] = useState(false);
+  const [showPhase10Menu, setShowPhase10Menu] = useState(false);
+  const [showKingsMenu, setShowKingsMenu] = useState(false);
   const [showJoinMenu, setShowJoinMenu] = useState(false);
   const [sixSevenRule, setSixSevenRule] = useState(true);
   const [availableRooms, setAvailableRooms] = useState<GameRoom[]>([]);
   const [roomCode, setRoomCode] = useState('');
-  const [gameType, setGameType] = useState<'war' | 'ers'>('war');
+  const [gameType, setGameType] = useState<'war' | 'ers' | 'phase10' | 'kings'>('war');
 
   const titleScale = useSharedValue(1);
   const titleRotate = useSharedValue(0);
@@ -65,7 +67,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
     };
   });
 
-  const handleCreateGame = async (type: 'war' | 'ers') => {
+  const handleCreateGame = async (type: 'war' | 'ers' | 'phase10' | 'kings') => {
     // Check if Firebase is available
     if (!database) {
       // Start local game without Firebase - no name required
@@ -115,7 +117,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
     }
   };
 
-  const openJoinMenu = async (type: 'war' | 'ers') => {
+  const openJoinMenu = async (type: 'war' | 'ers' | 'phase10' | 'kings') => {
     setGameType(type);
     await loadAvailableRooms();
     setShowJoinMenu(true);
@@ -172,6 +174,22 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
           >
             <Text style={styles.gameButtonTitle}>👋 EGYPTIAN RAT SCREW</Text>
             <Text style={styles.gameButtonSubtitle}>Fast reflexes required</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.gameButton, styles.phase10Button]}
+            onPress={() => setShowPhase10Menu(true)}
+          >
+            <Text style={styles.gameButtonTitle}>🎯 PHASE 10</Text>
+            <Text style={styles.gameButtonSubtitle}>Complete all 10 phases</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.gameButton, styles.kingsButton]}
+            onPress={() => setShowKingsMenu(true)}
+          >
+            <Text style={styles.gameButtonTitle}>👑 KINGS IN THE CORNERS</Text>
+            <Text style={styles.gameButtonSubtitle}>Strategy and skill</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -257,6 +275,84 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
             <TouchableOpacity
               style={styles.cancelButton}
               onPress={() => setShowERSMenu(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Phase 10 Menu Modal */}
+      <Modal visible={showPhase10Menu} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Phase 10</Text>
+            <Text style={styles.modalDescription}>
+              Complete all 10 phases to win!
+            </Text>
+
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => {
+                setShowPhase10Menu(false);
+                handleCreateGame('phase10');
+              }}
+            >
+              <Text style={styles.modalButtonText}>Create Game</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.modalButton, styles.secondaryButton]}
+              onPress={() => {
+                setShowPhase10Menu(false);
+                openJoinMenu('phase10');
+              }}
+            >
+              <Text style={styles.modalButtonText}>Join Game</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => setShowPhase10Menu(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Kings in Corners Menu Modal */}
+      <Modal visible={showKingsMenu} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Kings in the Corners</Text>
+            <Text style={styles.modalDescription}>
+              Play cards in descending order with alternating colors!
+            </Text>
+
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => {
+                setShowKingsMenu(false);
+                handleCreateGame('kings');
+              }}
+            >
+              <Text style={styles.modalButtonText}>Create Game</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.modalButton, styles.secondaryButton]}
+              onPress={() => {
+                setShowKingsMenu(false);
+                openJoinMenu('kings');
+              }}
+            >
+              <Text style={styles.modalButtonText}>Join Game</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => setShowKingsMenu(false)}
             >
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
@@ -404,6 +500,12 @@ const styles = StyleSheet.create({
   },
   ersButton: {
     backgroundColor: '#7C3AED',
+  },
+  phase10Button: {
+    backgroundColor: '#059669',
+  },
+  kingsButton: {
+    backgroundColor: '#D97706',
   },
   gameButtonTitle: {
     fontSize: 28,
