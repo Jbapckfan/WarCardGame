@@ -36,6 +36,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameId, playerId, onExit
   const [previousPlayedCards, setPreviousPlayedCards] = useState<{
     player1Card: any;
     player2Card: any;
+    winner: string | null;
   } | null>(null);
   const [warFaceDownCards, setWarFaceDownCards] = useState<number>(0);
   const [lastWarCards, setLastWarCards] = useState<{
@@ -44,6 +45,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameId, playerId, onExit
     player2BattleCard: any;
     player1InitialCard: any;
     player2InitialCard: any;
+    winner: string | null;
   } | null>(null);
 
   const screenWidth = Dimensions.get('window').width;
@@ -184,12 +186,13 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameId, playerId, onExit
           gameState.warState.player1Cards.length === 1 ? 'six-seven' : 'regular'
         );
 
-        // Update the war cards with the battle cards
+        // Update the war cards with the battle cards and winner
         if (lastWarCards) {
           setLastWarCards({
             ...lastWarCards,
             player1BattleCard: p1BattleCard,
             player2BattleCard: p2BattleCard,
+            winner: warResult.winner,
           });
         }
 
@@ -222,7 +225,10 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameId, playerId, onExit
         // Auto-clear war result after showing
         setTimeout(() => {
           if (lastPlayedCards) {
-            setPreviousPlayedCards(lastPlayedCards);
+            setPreviousPlayedCards({
+              ...lastPlayedCards,
+              winner: warResult.winner,
+            });
             setLastPlayedCards(null);
           }
         }, 1000); // 1 second to see the war result
@@ -248,7 +254,10 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameId, playerId, onExit
 
         // Move current cards to previous before showing new ones
         if (lastPlayedCards) {
-          setPreviousPlayedCards(lastPlayedCards);
+          setPreviousPlayedCards({
+            ...lastPlayedCards,
+            winner: null, // No winner in tied rounds that lead to war
+          });
         }
 
         setLastPlayedCards({
@@ -267,6 +276,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameId, playerId, onExit
             player2InitialCard: p2Card,
             player1BattleCard: null,
             player2BattleCard: null,
+            winner: null,
           });
 
           const updates: Partial<GameState> = {
@@ -316,6 +326,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameId, playerId, onExit
             setPreviousPlayedCards({
               player1Card: p1Card,
               player2Card: p2Card,
+              winner: result.winner,
             });
             setLastPlayedCards(null);
           }, 1000); // 1 second to see the result
@@ -443,24 +454,56 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameId, playerId, onExit
                   <CardComponent card={lastWarCards.player1InitialCard} scale={0.45} />
                 </View>
               </View>
-              <Text style={styles.warFaceDownText}>⬇ {lastWarCards.faceDownCount} card{lastWarCards.faceDownCount > 1 ? 's' : ''} face-down ⬇</Text>
+
+              {/* Face-down cards visual */}
+              <View style={styles.faceDownSection}>
+                <View style={styles.faceDownCardsRow}>
+                  {Array.from({ length: lastWarCards.faceDownCount }).map((_, i) => (
+                    <View key={i} style={styles.faceDownCardStack}>
+                      <CardComponent card={{ rank: 1, suit: 'spades' }} faceDown scale={0.3} />
+                      <CardComponent card={{ rank: 1, suit: 'spades' }} faceDown scale={0.3} />
+                    </View>
+                  ))}
+                </View>
+              </View>
+
               <Text style={styles.warStageLabel}>Battle Cards</Text>
               <View style={styles.warHistoryRow}>
-                <View style={styles.opponentCardOffset}>
-                  <CardComponent card={lastWarCards.player2BattleCard} scale={0.45} />
+                <View style={styles.cardWithIndicator}>
+                  <View style={styles.opponentCardOffset}>
+                    <CardComponent card={lastWarCards.player2BattleCard} scale={0.45} />
+                  </View>
+                  {lastWarCards.winner === gameState.player2?.id && (
+                    <Text style={styles.winnerIndicator}>⭐</Text>
+                  )}
                 </View>
-                <View style={styles.playerCardOffset}>
-                  <CardComponent card={lastWarCards.player1BattleCard} scale={0.45} />
+                <View style={styles.cardWithIndicator}>
+                  <View style={styles.playerCardOffset}>
+                    <CardComponent card={lastWarCards.player1BattleCard} scale={0.45} />
+                  </View>
+                  {lastWarCards.winner === gameState.player1.id && (
+                    <Text style={styles.winnerIndicator}>⭐</Text>
+                  )}
                 </View>
               </View>
             </View>
           ) : previousPlayedCards ? (
             <View style={styles.lastHandCards}>
-              <View style={styles.opponentCardOffset}>
-                <CardComponent card={previousPlayedCards.player2Card} scale={0.6} />
+              <View style={styles.cardWithIndicator}>
+                <View style={styles.opponentCardOffset}>
+                  <CardComponent card={previousPlayedCards.player2Card} scale={0.6} />
+                </View>
+                {previousPlayedCards.winner === gameState.player2?.id && (
+                  <Text style={styles.winnerIndicator}>⭐</Text>
+                )}
               </View>
-              <View style={styles.playerCardOffset}>
-                <CardComponent card={previousPlayedCards.player1Card} scale={0.6} />
+              <View style={styles.cardWithIndicator}>
+                <View style={styles.playerCardOffset}>
+                  <CardComponent card={previousPlayedCards.player1Card} scale={0.6} />
+                </View>
+                {previousPlayedCards.winner === gameState.player1.id && (
+                  <Text style={styles.winnerIndicator}>⭐</Text>
+                )}
               </View>
             </View>
           ) : null}
@@ -763,11 +806,25 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 4,
   },
-  warFaceDownText: {
-    fontSize: 10,
-    color: '#64748B',
-    fontWeight: '600',
-    textAlign: 'center',
-    marginVertical: 4,
+  faceDownSection: {
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  faceDownCardsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'center',
+  },
+  faceDownCardStack: {
+    flexDirection: 'row',
+    marginLeft: -25,
+  },
+  cardWithIndicator: {
+    alignItems: 'center',
+    position: 'relative',
+  },
+  winnerIndicator: {
+    fontSize: 24,
+    marginTop: -8,
   },
 });
