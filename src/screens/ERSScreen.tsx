@@ -28,17 +28,25 @@ import {
   isFaceCard,
 } from '../utils/ersLogic';
 import { saveGame } from '../utils/gameSaveService';
+import {
+  listenToERSGameState,
+  playERSCard,
+  handleERSSlap,
+} from '../utils/ersFirebaseService';
+import { initializeAuth, getCurrentUserId } from '../utils/authService';
 
 interface ERSScreenProps {
   gameId: string;
-  playerId: string;
+  playerId?: string;
   playerCount?: number;
   resumeState?: ERSGameState;
   onExit: () => void;
 }
 
-export const ERSScreen: React.FC<ERSScreenProps> = ({ gameId, playerId, playerCount = 2, resumeState, onExit }) => {
+export const ERSScreen: React.FC<ERSScreenProps> = ({ gameId, playerId: initialPlayerId, playerCount = 2, resumeState, onExit }) => {
   const [gameState, setGameState] = useState<ERSGameState | null>(resumeState || null);
+  const [currentUserId, setCurrentUserId] = useState<string>(initialPlayerId || '');
+  const [isFirebaseGame, setIsFirebaseGame] = useState<boolean>(false);
   const [canPlay, setCanPlay] = useState(false);
   const [slapFeedback, setSlapFeedback] = useState<string>('');
   const [lastCardPlayedTime, setLastCardPlayedTime] = useState<number | null>(null);
@@ -63,6 +71,30 @@ export const ERSScreen: React.FC<ERSScreenProps> = ({ gameId, playerId, playerCo
     };
   });
 
+  // Initialize auth and determine if Firebase game
+  useEffect(() => {
+    const init = async () => {
+      await initializeAuth();
+      const userId = await getCurrentUserId();
+      setCurrentUserId(userId);
+      setIsFirebaseGame(!gameId.startsWith('local_'));
+    };
+    init();
+  }, [gameId]);
+
+  // Listen to Firebase game state
+  useEffect(() => {
+    if (!isFirebaseGame || !gameId) return;
+
+    const unsubscribe = listenToERSGameState(gameId, (state) => {
+      if (state) {
+        setGameState(state);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [gameId, isFirebaseGame]);
+
   // Load fastest slap from storage
   useEffect(() => {
     const loadFastestSlap = async () => {
@@ -78,12 +110,12 @@ export const ERSScreen: React.FC<ERSScreenProps> = ({ gameId, playerId, playerCo
     loadFastestSlap();
   }, []);
 
-  // Initialize game state for demonstration
+  // Initialize game state for local games only
   useEffect(() => {
-    // Skip initialization if we're resuming from saved state
-    if (resumeState) return;
+    // Skip if Firebase game, resuming from saved state, or not initialized yet
+    if (isFirebaseGame || resumeState || !currentUserId) return;
 
-    // Import card utilities
+    // Import card utilities for local games
     import('../utils/cardUtils').then(({ createDeck, shuffleDeck, splitDeckMultiple }) => {
       const deck = shuffleDeck(createDeck());
       const playerDecks = splitDeckMultiple(deck, playerCount);
@@ -91,7 +123,7 @@ export const ERSScreen: React.FC<ERSScreenProps> = ({ gameId, playerId, playerCo
       const mockState: ERSGameState = {
         id: gameId,
         player1: {
-          id: playerId,
+          id: currentUserId,
           name: 'Player 1',
           deck: playerDecks[0],
         },
@@ -112,7 +144,7 @@ export const ERSScreen: React.FC<ERSScreenProps> = ({ gameId, playerId, playerCo
         } : null,
         playerCount,
         pile: [],
-        currentTurn: playerId,
+        currentTurn: currentUserId,
         gameStatus: 'playing',
         lastAction: 'Game started - pass device to play!',
         lastActionTime: Date.now(),
@@ -123,7 +155,7 @@ export const ERSScreen: React.FC<ERSScreenProps> = ({ gameId, playerId, playerCo
       };
       setGameState(mockState);
     });
-  }, []);
+  }, [currentUserId, isFirebaseGame]);
 
   // AI opponent plays automatically (only for single-player AI mode)
   useEffect(() => {
@@ -297,14 +329,35 @@ export const ERSScreen: React.FC<ERSScreenProps> = ({ gameId, playerId, playerCo
   }
 
   const currentPlayer = getCurrentPlayer(gameState);
-  const isMyTurn = gameState.currentTurn === playerId;
+  const isMyTurn = gameState.currentTurn === currentUserId;
 
-  const handlePlayCard = () => {
+  const handlePlayCard = async () => {
     if (!currentPlayer || currentPlayer.deck.length === 0) return;
 
     const card = currentPlayer.deck[0];
     const newPile = [...gameState.pile, card];
     const newDeck = currentPlayer.deck.slice(1);
+
+    // Firebase multiplayer
+    if (isFirebaseGame) {
+      try {
+        await playERSCard(gameId, currentUserId, card, newDeck, newPile);
+        // State updates automatically via listener
+        setLastCardPlayedTime(Date.now());
+
+        // Animate pile
+        pileScale.value = withSequence(
+          withSpring(1.2),
+          withSpring(1)
+        );
+        return;
+      } catch (error: any) {
+        Alert.alert('Error', error.message || 'Failed to play card');
+        return;
+      }
+    }
+
+    // Local game logic below
 
     // Animate pile
     pileScale.value = withSequence(
@@ -404,7 +457,7 @@ export const ERSScreen: React.FC<ERSScreenProps> = ({ gameId, playerId, playerCo
     }
   };
 
-  const handleSlap = () => {
+  const handleSlap = async () => {
     const now = Date.now();
     const slapCheck = checkValidSlap(gameState.pile);
 
@@ -415,6 +468,89 @@ export const ERSScreen: React.FC<ERSScreenProps> = ({ gameId, playerId, playerCo
       reactionTimeMs = now - lastCardPlayedTime;
       reactionTime = reactionTimeMs / 1000; // Convert to seconds
     }
+
+    // Firebase multiplayer
+    if (isFirebaseGame) {
+      try {
+        await handleERSSlap(gameId, currentUserId, slapCheck.valid, slapCheck.valid ? gameState.pile : null);
+
+        // Animate
+        slapScale.value = withSequence(
+          withTiming(1.5, { duration: 100 }),
+          withTiming(0, { duration: 300 })
+        );
+
+        // Haptic feedback
+        if (Platform.OS === 'ios') {
+          Vibration.vibrate(slapCheck.valid ? 50 : [0, 100, 50, 100]);
+        }
+
+        // Visual feedback
+        if (slapCheck.valid) {
+          RNAnimated.sequence([
+            RNAnimated.timing(successAnim, {
+              toValue: 1,
+              duration: 300,
+              useNativeDriver: true,
+            }),
+            RNAnimated.timing(successAnim, {
+              toValue: 0,
+              duration: 300,
+              useNativeDriver: true,
+            }),
+          ]).start();
+
+          let feedbackText = `✅ ${formatSlapRules(slapCheck.rules)}!`;
+          if (reactionTime !== null) {
+            setLastSlapTime(reactionTimeMs!);
+            const isSuperFast = reactionTimeMs! < 400;
+            const isNewRecord = fastestSlap === null || reactionTimeMs! < fastestSlap;
+
+            if (isNewRecord) {
+              setFastestSlap(reactionTimeMs!);
+              AsyncStorage.setItem('ers_fastest_slap', reactionTimeMs!.toString()).catch(err =>
+                console.log('Failed to save fastest slap:', err)
+              );
+              if (isSuperFast) {
+                feedbackText += ` 🔥 SUPER FAST SLAP! 🔥\n⚡ NEW RECORD: ${reactionTime.toFixed(3)}s`;
+              } else {
+                feedbackText += ` ⚡ NEW RECORD: ${reactionTime.toFixed(3)}s`;
+              }
+            } else if (isSuperFast) {
+              feedbackText += ` 🔥 SUPER FAST SLAP! ${reactionTime.toFixed(3)}s`;
+            } else {
+              feedbackText += ` ⏱️ ${reactionTime.toFixed(3)}s`;
+            }
+          }
+          setSlapFeedback(feedbackText);
+        } else {
+          RNAnimated.sequence([
+            RNAnimated.timing(failAnim, {
+              toValue: 1,
+              duration: 300,
+              useNativeDriver: true,
+            }),
+            RNAnimated.timing(failAnim, {
+              toValue: 0,
+              duration: 300,
+              useNativeDriver: true,
+            }),
+          ]).start();
+
+          setSlapFeedback('❌ Bad slap! Penalty!');
+        }
+
+        setTimeout(() => setSlapFeedback(''), slapCheck.valid ? 3000 : 2000);
+        return;
+      } catch (error: any) {
+        console.error('Slap error:', error);
+        setSlapFeedback('❌ Failed to slap');
+        setTimeout(() => setSlapFeedback(''), 2000);
+        return;
+      }
+    }
+
+    // Local game logic below
 
     if (slapCheck.valid) {
       // Successful slap!
@@ -472,6 +608,7 @@ export const ERSScreen: React.FC<ERSScreenProps> = ({ gameId, playerId, playerCo
       setTimeout(() => setSlapFeedback(''), 3000);
 
       // Give player the pile
+      const isPlayer1 = currentPlayer.id === gameState.player1.id;
       const updatedState: ERSGameState = {
         ...gameState,
         [isPlayer1 ? 'player1' : 'player2']: {
@@ -514,6 +651,7 @@ export const ERSScreen: React.FC<ERSScreenProps> = ({ gameId, playerId, playerCo
       setTimeout(() => setSlapFeedback(''), 2000);
 
       if (currentPlayer.deck.length > 0) {
+        const isPlayer1 = currentPlayer.id === gameState.player1.id;
         const penaltyCard = currentPlayer.deck[0];
         const updatedState: ERSGameState = {
           ...gameState,

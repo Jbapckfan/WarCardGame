@@ -20,10 +20,15 @@ import { saveGame } from '../utils/gameSaveService';
 import { CardComponent } from '../components/CardComponent';
 import { triggerHaptic } from '../utils/hapticManager';
 import { ConfettiCelebration } from '../components/ConfettiCelebration';
+import {
+  listenToGoFishGameState,
+  askForCards as askForCardsFirebase,
+} from '../utils/gofishFirebaseService';
+import { initializeAuth, getCurrentUserId } from '../utils/authService';
 
 interface GoFishScreenProps {
   gameId: string;
-  playerId: string;
+  playerId?: string;
   playerCount?: number;
   resumeState?: GoFishGameState;
   onExit: () => void;
@@ -31,15 +36,41 @@ interface GoFishScreenProps {
 
 export const GoFishScreen: React.FC<GoFishScreenProps> = ({
   gameId,
-  playerId,
+  playerId: initialPlayerId,
   playerCount = 2,
   resumeState,
   onExit,
 }) => {
   const [gameState, setGameState] = useState<GoFishGameState | null>(resumeState || null);
+  const [currentUserId, setCurrentUserId] = useState<string>(initialPlayerId || '');
+  const [isFirebaseGame, setIsFirebaseGame] = useState<boolean>(false);
   const [selectedRank, setSelectedRank] = useState<number | null>(null);
   const [showPlayerSelect, setShowPlayerSelect] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
+
+  // Initialize auth and determine if Firebase game
+  useEffect(() => {
+    const init = async () => {
+      await initializeAuth();
+      const userId = await getCurrentUserId();
+      setCurrentUserId(userId);
+      setIsFirebaseGame(!gameId.startsWith('local_'));
+    };
+    init();
+  }, [gameId]);
+
+  // Listen to Firebase game state
+  useEffect(() => {
+    if (!isFirebaseGame || !gameId) return;
+
+    const unsubscribe = listenToGoFishGameState(gameId, (state) => {
+      if (state) {
+        setGameState(state);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [gameId, isFirebaseGame]);
 
   const handleExitWithSave = async () => {
     await triggerHaptic.buttonTap();
@@ -49,15 +80,16 @@ export const GoFishScreen: React.FC<GoFishScreenProps> = ({
     onExit();
   };
 
+  // Initialize local games only
   useEffect(() => {
-    // Skip initialization if we're resuming from saved state
-    if (resumeState) return;
+    // Skip if Firebase game, resuming from saved state, or not initialized yet
+    if (isFirebaseGame || resumeState || !currentUserId) return;
 
     // Initialize new game
     const playerNames = Array.from({ length: playerCount }, (_, i) => `Player ${i + 1}`);
     const initialState = dealGoFishGame(gameId, playerCount, playerNames);
     setGameState(initialState);
-  }, []);
+  }, [currentUserId, isFirebaseGame]);
 
   if (!gameState) {
     return (
@@ -68,11 +100,14 @@ export const GoFishScreen: React.FC<GoFishScreenProps> = ({
   }
 
   const currentPlayer = gameState.players[gameState.currentTurn];
-  const isMyTurn = gameState.currentTurn === 0; // Player 1 is always the human player
+  const myPlayerIndex = gameState.players.findIndex(p => p.id === currentUserId);
+  const myPlayer = gameState.players[myPlayerIndex];
+  const isMyTurn = myPlayerIndex === gameState.currentTurn;
 
-  // Get unique ranks in current player's hand
+  // Get unique ranks in my hand (for Firebase) or current player hand (for local)
+  const handToShow = isFirebaseGame ? (myPlayer?.deck || []) : currentPlayer.deck;
   const availableRanks = Array.from(
-    new Set(currentPlayer.deck.map(card => card.rank))
+    new Set(handToShow.map(card => card.rank))
   ).sort((a, b) => a - b);
 
   const handleAskForCards = async (targetPlayerIndex: number) => {
@@ -83,6 +118,24 @@ export const GoFishScreen: React.FC<GoFishScreenProps> = ({
     }
 
     await triggerHaptic.cardPlay();
+
+    // Firebase multiplayer
+    if (isFirebaseGame) {
+      try {
+        const targetPlayerId = gameState.players[targetPlayerIndex].id;
+        await askForCardsFirebase(gameId, currentUserId, targetPlayerId, selectedRank);
+        // State updates via listener
+        setSelectedRank(null);
+        setShowPlayerSelect(false);
+        return;
+      } catch (error: any) {
+        await triggerHaptic.error();
+        Alert.alert('Error', error.message || 'Failed to ask for cards');
+        return;
+      }
+    }
+
+    // Local game logic
     const { newState, result } = askForCards(
       gameState,
       gameState.currentTurn,
@@ -167,10 +220,10 @@ export const GoFishScreen: React.FC<GoFishScreenProps> = ({
 
       {/* Current Player's Hand */}
       <View style={styles.handSection}>
-        <Text style={styles.handTitle}>Your Hand ({currentPlayer.deck.length} cards)</Text>
+        <Text style={styles.handTitle}>Your Hand ({handToShow.length} cards)</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View style={styles.hand}>
-            {currentPlayer.deck.map((card) => (
+            {handToShow.map((card) => (
               <View key={card.id} style={styles.handCardContainer}>
                 <CardComponent card={card} scale={0.7} />
               </View>
