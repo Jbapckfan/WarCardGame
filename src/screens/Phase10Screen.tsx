@@ -307,6 +307,31 @@ export const Phase10Screen: React.FC<Phase10ScreenProps> = ({ gameId, playerId, 
   const phaseRequirement = PHASE_REQUIREMENTS[myPlayer.currentPhase];
   const phaseDescription = PHASE_DESCRIPTIONS[phaseRequirement];
 
+  // Show victory screen when game is finished
+  if (gameState.gameStatus === 'finished') {
+    const didIWin = gameState.winner === playerId;
+    const winner = gameState.players.find(p => p.id === gameState.winner);
+    return (
+      <View style={styles.container}>
+        <Text style={styles.gameOverText}>
+          {didIWin ? '🎯 PHASE 10 CHAMPION! 🎯' : '😔 So Close! 😔'}
+        </Text>
+        <Text style={styles.victoryMessage}>
+          {didIWin
+            ? 'You completed all 10 phases! Outstanding!'
+            : `${winner?.name} completed all phases first!`
+          }
+        </Text>
+        <Text style={styles.scoreText}>
+          Your Phase: {myPlayer.currentPhase}/10
+        </Text>
+        <TouchableOpacity style={styles.exitButtonLarge} onPress={onExit}>
+          <Text style={styles.exitTextLarge}>Back to Menu</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -514,5 +539,38 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     textAlign: 'center',
+  },
+  gameOverText: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#FFD700',
+    textAlign: 'center',
+    marginTop: 100,
+    marginBottom: 20,
+  },
+  victoryMessage: {
+    fontSize: 18,
+    color: 'white',
+    textAlign: 'center',
+    marginBottom: 20,
+    paddingHorizontal: 20,
+  },
+  scoreText: {
+    fontSize: 16,
+    color: '#FFD700',
+    textAlign: 'center',
+    marginBottom: 40,
+  },
+  exitButtonLarge: {
+    backgroundColor: '#FFD700',
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignSelf: 'center',
+  },
+  exitTextLarge: {
+    color: '#1F2937',
+    fontWeight: 'bold',
+    fontSize: 18,
   },
 });

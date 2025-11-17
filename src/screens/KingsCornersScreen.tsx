@@ -342,6 +342,28 @@ export const KingsCornersScreen: React.FC<KingsCornersScreenProps> = ({ gameId, 
     );
   }
 
+  // Show victory screen when game is finished
+  if (gameState.gameStatus === 'finished') {
+    const didIWin = gameState.winner === playerId;
+    const winner = gameState.players.find(p => p.id === gameState.winner);
+    return (
+      <View style={styles.container}>
+        <Text style={styles.gameOverText}>
+          {didIWin ? '👑 KING OF THE CORNERS! 👑' : '😔 So Close! 😔'}
+        </Text>
+        <Text style={styles.victoryMessage}>
+          {didIWin
+            ? 'You emptied your hand first and won!'
+            : `${winner?.name} emptied their hand first!`
+          }
+        </Text>
+        <TouchableOpacity style={styles.exitButtonLarge} onPress={onExit}>
+          <Text style={styles.exitTextLarge}>Back to Menu</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -567,5 +589,32 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     textAlign: 'center',
+  },
+  gameOverText: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#FFD700',
+    textAlign: 'center',
+    marginTop: 100,
+    marginBottom: 20,
+  },
+  victoryMessage: {
+    fontSize: 18,
+    color: 'white',
+    textAlign: 'center',
+    marginBottom: 40,
+    paddingHorizontal: 20,
+  },
+  exitButtonLarge: {
+    backgroundColor: '#FFD700',
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignSelf: 'center',
+  },
+  exitTextLarge: {
+    color: '#1F2937',
+    fontWeight: 'bold',
+    fontSize: 18,
   },
 });

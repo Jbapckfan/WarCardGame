@@ -450,6 +450,31 @@ export const ERSScreen: React.FC<ERSScreenProps> = ({ gameId, playerId, onExit }
 
   const topCard = gameState.pile[gameState.pile.length - 1];
 
+  // Show victory screen when game is finished
+  if (gameState.gameStatus === 'finished') {
+    const player1Won = gameState.player1.deck.length > gameState.player2.deck.length;
+    const didIWin = gameState.player1.id === playerId ? player1Won : !player1Won;
+    return (
+      <View style={styles.container}>
+        <Text style={styles.gameOverText}>
+          {didIWin ? '⚡ SLAP MASTER! ⚡' : '😔 Better Reflexes Next Time 😔'}
+        </Text>
+        <Text style={styles.victoryMessage}>
+          {didIWin
+            ? 'Your lightning-fast reflexes won the game!'
+            : 'The opponent was faster this time!'
+          }
+        </Text>
+        <Text style={styles.scoreText}>
+          Your Cards: {gameState.player1.id === playerId ? gameState.player1.deck.length : gameState.player2.deck.length}
+        </Text>
+        <TouchableOpacity style={styles.exitButtonLarge} onPress={onExit}>
+          <Text style={styles.exitTextLarge}>Back to Menu</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       {/* Success/Fail Overlays */}
@@ -868,5 +893,38 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     textAlign: 'center',
     marginTop: 100,
+  },
+  gameOverText: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#F59E0B',
+    textAlign: 'center',
+    marginTop: 100,
+    marginBottom: 20,
+  },
+  victoryMessage: {
+    fontSize: 18,
+    color: 'white',
+    textAlign: 'center',
+    marginBottom: 20,
+    paddingHorizontal: 20,
+  },
+  scoreText: {
+    fontSize: 16,
+    color: '#10B981',
+    textAlign: 'center',
+    marginBottom: 40,
+  },
+  exitButtonLarge: {
+    backgroundColor: '#F59E0B',
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignSelf: 'center',
+  },
+  exitTextLarge: {
+    color: '#1F2937',
+    fontWeight: 'bold',
+    fontSize: 18,
   },
 });

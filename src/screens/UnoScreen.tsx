@@ -283,6 +283,27 @@ export const UnoScreen: React.FC<UnoScreenProps> = ({ gameId, playerId, onExit }
 
   const topCard = gameState.discardPile[gameState.discardPile.length - 1];
 
+  // Show victory screen when game is finished
+  if (gameState.gameStatus === 'finished') {
+    const didIWin = gameState.winner === playerId;
+    return (
+      <View style={styles.container}>
+        <Text style={styles.gameOverText}>
+          {didIWin ? '🎉 UNO MASTER! 🎉' : '😔 Better Luck Next Time 😔'}
+        </Text>
+        <Text style={styles.victoryMessage}>
+          {didIWin
+            ? 'You emptied your hand and conquered the game!'
+            : `${gameState.players.find(p => p.id === gameState.winner)?.name} won this round!`
+          }
+        </Text>
+        <TouchableOpacity style={styles.exitButtonLarge} onPress={onExit}>
+          <Text style={styles.exitTextLarge}>Back to Menu</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -515,6 +536,33 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     textAlign: 'center',
+  },
+  gameOverText: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#EF4444',
+    textAlign: 'center',
+    marginTop: 100,
+    marginBottom: 20,
+  },
+  victoryMessage: {
+    fontSize: 18,
+    color: 'white',
+    textAlign: 'center',
+    marginBottom: 40,
+    paddingHorizontal: 20,
+  },
+  exitButtonLarge: {
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignSelf: 'center',
+  },
+  exitTextLarge: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 18,
   },
   modalOverlay: {
     flex: 1,

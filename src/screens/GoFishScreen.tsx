@@ -217,6 +217,31 @@ export const GoFishScreen: React.FC<GoFishScreenProps> = ({ gameId, playerId, on
 
   const otherPlayers = gameState.players.filter(p => p.id !== playerId);
 
+  // Show victory screen when game is finished
+  if (gameState.gameStatus === 'finished') {
+    const didIWin = gameState.winner === playerId;
+    const winner = gameState.players.find(p => p.id === gameState.winner);
+    return (
+      <View style={styles.container}>
+        <Text style={styles.gameOverText}>
+          {didIWin ? '🐟 MASTER ANGLER! 🐟' : '😔 The Fish Got Away 😔'}
+        </Text>
+        <Text style={styles.victoryMessage}>
+          {didIWin
+            ? `You collected the most books and won the game!`
+            : `${winner?.name} collected the most books and won!`
+          }
+        </Text>
+        <Text style={styles.scoreText}>
+          Final Books: {myPlayer.books.length}
+        </Text>
+        <TouchableOpacity style={styles.exitButtonLarge} onPress={onExit}>
+          <Text style={styles.exitTextLarge}>Back to Menu</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -485,5 +510,38 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#94A3B8',
     textAlign: 'center',
+  },
+  gameOverText: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#60A5FA',
+    textAlign: 'center',
+    marginTop: 100,
+    marginBottom: 20,
+  },
+  victoryMessage: {
+    fontSize: 18,
+    color: 'white',
+    textAlign: 'center',
+    marginBottom: 20,
+    paddingHorizontal: 20,
+  },
+  scoreText: {
+    fontSize: 16,
+    color: '#60A5FA',
+    textAlign: 'center',
+    marginBottom: 40,
+  },
+  exitButtonLarge: {
+    backgroundColor: '#3B82F6',
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignSelf: 'center',
+  },
+  exitTextLarge: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 18,
   },
 });

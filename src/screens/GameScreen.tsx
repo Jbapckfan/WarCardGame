@@ -345,13 +345,19 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameId, playerId, onExit
     return (
       <View style={styles.container}>
         <Text style={styles.gameOverText}>
-          {didIWin ? '🎉 You Won! 🎉' : '😔 You Lost 😔'}
+          {didIWin ? '⚔️ WAR CHAMPION! ⚔️' : '😔 Defeated in Battle 😔'}
+        </Text>
+        <Text style={styles.victoryMessage}>
+          {didIWin
+            ? 'You conquered all 52 cards and won the war!'
+            : 'The opponent claimed victory this time!'
+          }
         </Text>
         <Text style={styles.statsText}>
           Final Score: {currentPlayer.deck.length} - {opponent.deck.length}
         </Text>
         <TouchableOpacity style={styles.button} onPress={onExit}>
-          <Text style={styles.buttonText}>Exit to Menu</Text>
+          <Text style={styles.buttonText}>Back to Menu</Text>
         </TouchableOpacity>
       </View>
     );
@@ -725,6 +731,13 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     textAlign: 'center',
     marginBottom: 20,
+  },
+  victoryMessage: {
+    fontSize: 18,
+    color: '#94A3B8',
+    textAlign: 'center',
+    marginBottom: 20,
+    paddingHorizontal: 20,
   },
   statsText: {
     fontSize: 20,

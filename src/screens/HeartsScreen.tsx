@@ -278,6 +278,31 @@ export const HeartsScreen: React.FC<HeartsScreenProps> = ({ gameId, playerId, on
 
   const isPassing = gameState.playPhase === 'passing' && gameState.passDirection !== 'none';
 
+  // Show victory screen when game is finished
+  if (gameState.gameStatus === 'finished') {
+    const didIWin = gameState.winner === playerId;
+    const winner = gameState.players.find(p => p.id === gameState.winner);
+    return (
+      <View style={styles.container}>
+        <Text style={styles.gameOverText}>
+          {didIWin ? '♥️ HEARTS MASTER! ♥️' : '😔 Nice Try! 😔'}
+        </Text>
+        <Text style={styles.victoryMessage}>
+          {didIWin
+            ? 'You had the lowest score and won the game!'
+            : `${winner?.name} had the lowest score and won!`
+          }
+        </Text>
+        <Text style={styles.scoreText}>
+          Your Final Score: {myPlayer.score} points
+        </Text>
+        <TouchableOpacity style={styles.exitButtonLarge} onPress={onExit}>
+          <Text style={styles.exitTextLarge}>Back to Menu</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -510,5 +535,38 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     textAlign: 'center',
+  },
+  gameOverText: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#DC2626',
+    textAlign: 'center',
+    marginTop: 100,
+    marginBottom: 20,
+  },
+  victoryMessage: {
+    fontSize: 18,
+    color: 'white',
+    textAlign: 'center',
+    marginBottom: 20,
+    paddingHorizontal: 20,
+  },
+  scoreText: {
+    fontSize: 16,
+    color: '#DC2626',
+    textAlign: 'center',
+    marginBottom: 40,
+  },
+  exitButtonLarge: {
+    backgroundColor: '#DC2626',
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignSelf: 'center',
+  },
+  exitTextLarge: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 18,
   },
 });
