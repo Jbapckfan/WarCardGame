@@ -14,17 +14,29 @@ import { getRankName, getSuitSymbol, getSuitColor } from '../utils/cardUtils';
 interface CardComponentProps {
   card: Card;
   faceDown?: boolean;
+  faceUp?: boolean;
   animated?: boolean;
   scale?: number;
+  size?: 'small' | 'medium' | 'large';
 }
+
+const CARD_SIZES = {
+  small: { width: 60, height: 90, fontSize: 14, suitSize: 40 },
+  medium: { width: 80, height: 120, fontSize: 20, suitSize: 56 },
+  large: { width: 100, height: 150, fontSize: 24, suitSize: 70 },
+};
 
 export const CardComponent: React.FC<CardComponentProps> = ({
   card,
   faceDown = false,
+  faceUp = false,
   animated = false,
   scale = 1,
+  size = 'medium',
 }) => {
-  const rotation = useSharedValue(faceDown ? 180 : 0);
+  const actualFaceDown = faceUp ? false : faceDown;
+  const rotation = useSharedValue(actualFaceDown ? 180 : 0);
+  const cardSize = CARD_SIZES[size];
   const scaleValue = useSharedValue(1);
 
   useEffect(() => {
@@ -51,8 +63,12 @@ export const CardComponent: React.FC<CardComponentProps> = ({
 
   return (
     <Animated.View style={[styles.cardContainer, animatedStyle]}>
-      <View style={[styles.card, faceDown && styles.cardBack]}>
-        {faceDown ? (
+      <View style={[
+        styles.card,
+        { width: cardSize.width, height: cardSize.height },
+        actualFaceDown && styles.cardBack
+      ]}>
+        {actualFaceDown ? (
           <LinearGradient
             colors={['#1E3A8A', '#3B82F6', '#1E3A8A']}
             start={{ x: 0, y: 0 }}
@@ -71,13 +87,13 @@ export const CardComponent: React.FC<CardComponentProps> = ({
             <View style={styles.cardBorder} />
             <View style={styles.cardFront}>
               <View style={styles.cornerTop}>
-                <Text style={[styles.rank, { color: suitColor }]}>{rankName}</Text>
-                <Text style={[styles.suitSmall, { color: suitColor }]}>{suitSymbol}</Text>
+                <Text style={[styles.rank, { color: suitColor, fontSize: cardSize.fontSize }]}>{rankName}</Text>
+                <Text style={[styles.suitSmall, { color: suitColor, fontSize: cardSize.fontSize * 0.8 }]}>{suitSymbol}</Text>
               </View>
-              <Text style={[styles.suitLarge, { color: suitColor }]}>{suitSymbol}</Text>
+              <Text style={[styles.suitLarge, { color: suitColor, fontSize: cardSize.suitSize }]}>{suitSymbol}</Text>
               <View style={styles.cornerBottom}>
-                <Text style={[styles.rank, { color: suitColor }]}>{rankName}</Text>
-                <Text style={[styles.suitSmall, { color: suitColor }]}>{suitSymbol}</Text>
+                <Text style={[styles.rank, { color: suitColor, fontSize: cardSize.fontSize }]}>{rankName}</Text>
+                <Text style={[styles.suitSmall, { color: suitColor, fontSize: cardSize.fontSize * 0.8 }]}>{suitSymbol}</Text>
               </View>
             </View>
           </>
@@ -96,8 +112,6 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   card: {
-    width: 80,
-    height: 120,
     borderRadius: 12,
     backgroundColor: '#FFFFFF',
     overflow: 'hidden',
@@ -152,18 +166,15 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '180deg' }],
   },
   rank: {
-    fontSize: 20,
     fontWeight: '900',
     textShadowColor: 'rgba(0, 0, 0, 0.1)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
   },
   suitSmall: {
-    fontSize: 16,
     marginTop: -2,
   },
   suitLarge: {
-    fontSize: 56,
     textShadowColor: 'rgba(0, 0, 0, 0.1)',
     textShadowOffset: { width: 2, height: 2 },
     textShadowRadius: 4,

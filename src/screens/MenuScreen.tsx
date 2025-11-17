@@ -28,9 +28,10 @@ interface MenuScreenProps {
   onViewStats: () => void;
   onViewAchievements: () => void;
   onViewDailyChallenges: () => void;
+  onViewTutorial: () => void;
 }
 
-export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onViewStats, onViewAchievements, onViewDailyChallenges }) => {
+export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onViewStats, onViewAchievements, onViewDailyChallenges, onViewTutorial }) => {
   const [playerName, setPlayerName] = useState('');
   const [playerId] = useState(`player_${Date.now()}`);
   const [pushToken, setPushToken] = useState<string>();
@@ -191,6 +192,17 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onViewStats
           <View style={styles.dailyChallengesContent}>
             <Text style={styles.dailyChallengesTitle}>Daily Challenges</Text>
             <Text style={styles.dailyChallengesSubtitle}>Complete challenges for bonus XP</Text>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.tutorialButton}
+          onPress={onViewTutorial}
+        >
+          <Text style={styles.tutorialIcon}>🎓</Text>
+          <View style={styles.tutorialContent}>
+            <Text style={styles.tutorialTitle}>ERS Tutorial</Text>
+            <Text style={styles.tutorialSubtitle}>Learn the rules & practice slapping</Text>
           </View>
         </TouchableOpacity>
 
@@ -885,5 +897,32 @@ const styles = StyleSheet.create({
   dailyChallengesSubtitle: {
     fontSize: 12,
     color: '#FEF3C7',
+  },
+  tutorialButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#7C3AED',
+    borderWidth: 2,
+    borderColor: '#A78BFA',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+  },
+  tutorialIcon: {
+    fontSize: 32,
+    marginRight: 12,
+  },
+  tutorialContent: {
+    flex: 1,
+  },
+  tutorialTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 2,
+  },
+  tutorialSubtitle: {
+    fontSize: 12,
+    color: '#E9D5FF',
   },
 });

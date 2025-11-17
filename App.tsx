@@ -12,11 +12,12 @@ import { HeartsScreen } from './src/screens/HeartsScreen';
 import { StatsScreen } from './src/screens/StatsScreen';
 import { AchievementsScreen } from './src/screens/AchievementsScreen';
 import { DailyChallengesScreen } from './src/screens/DailyChallengesScreen';
+import { TutorialScreen } from './src/screens/TutorialScreen';
 
 type GameType = 'war' | 'ers' | 'phase10' | 'kings' | 'gofish' | 'uno' | 'hearts' | null;
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<'menu' | 'game' | 'stats' | 'achievements' | 'dailyChallenges'>('menu');
+  const [currentScreen, setCurrentScreen] = useState<'menu' | 'game' | 'stats' | 'achievements' | 'dailyChallenges' | 'tutorial'>('menu');
   const [gameId, setGameId] = useState<string | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [gameType, setGameType] = useState<GameType>(null);
@@ -45,6 +46,10 @@ export default function App() {
 
   const handleViewDailyChallenges = () => {
     setCurrentScreen('dailyChallenges');
+  };
+
+  const handleViewTutorial = () => {
+    setCurrentScreen('tutorial');
   };
 
   const handleBackToMenu = () => {
@@ -82,6 +87,7 @@ export default function App() {
             onViewStats={handleViewStats}
             onViewAchievements={handleViewAchievements}
             onViewDailyChallenges={handleViewDailyChallenges}
+            onViewTutorial={handleViewTutorial}
           />
         );
       case 'stats':
@@ -90,6 +96,8 @@ export default function App() {
         return <AchievementsScreen playerId={playerId || `player_${Date.now()}`} onBack={handleBackToMenu} />;
       case 'dailyChallenges':
         return <DailyChallengesScreen onBack={handleBackToMenu} />;
+      case 'tutorial':
+        return <TutorialScreen onComplete={handleBackToMenu} onSkip={handleBackToMenu} />;
       case 'game':
         return renderGameScreen();
       default:
@@ -99,6 +107,7 @@ export default function App() {
             onViewStats={handleViewStats}
             onViewAchievements={handleViewAchievements}
             onViewDailyChallenges={handleViewDailyChallenges}
+            onViewTutorial={handleViewTutorial}
           />
         );
     }
