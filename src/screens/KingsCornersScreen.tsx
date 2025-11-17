@@ -408,22 +408,25 @@ export const KingsCornersScreen: React.FC<KingsCornersScreenProps> = ({ gameId, 
 
       <View style={styles.handContainer}>
         <Text style={styles.handLabel}>Your Hand ({myPlayer.hand.length} cards)</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View style={styles.hand}>
-            {myPlayer.hand.map((card) => (
+        <View style={styles.hand}>
+          {myPlayer.hand.map((card, index) => {
+            // Scale cards based on hand size
+            const cardScale = myPlayer.hand.length > 10 ? 0.45 : myPlayer.hand.length > 7 ? 0.5 : 0.6;
+            return (
               <TouchableOpacity
                 key={card.id}
                 onPress={() => handleCardClick(card)}
                 style={[
                   styles.cardWrapper,
                   selectedCard?.id === card.id && styles.selectedCardWrapper,
+                  { zIndex: index },
                 ]}
               >
-                <CardComponent card={card} scale={0.6} />
+                <CardComponent card={card} scale={cardScale} />
               </TouchableOpacity>
-            ))}
-          </View>
-        </ScrollView>
+            );
+          })}
+        </View>
       </View>
 
       {selectedCard && (
@@ -562,10 +565,14 @@ const styles = StyleSheet.create({
   },
   hand: {
     flexDirection: 'row',
-    gap: 8,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 2,
+    marginLeft: -15,
   },
   cardWrapper: {
-    marginHorizontal: 4,
+    marginLeft: 15,
+    marginVertical: 3,
   },
   selectedCardWrapper: {
     transform: [{ translateY: -10 }],

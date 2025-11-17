@@ -376,22 +376,25 @@ export const Phase10Screen: React.FC<Phase10ScreenProps> = ({ gameId, playerId, 
 
       <View style={styles.handContainer}>
         <Text style={styles.handLabel}>Your Hand ({myPlayer.hand.length} cards)</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View style={styles.hand}>
-            {myPlayer.hand.map((card, idx) => (
+        <View style={styles.hand}>
+          {myPlayer.hand.map((card, index) => {
+            // Scale cards based on hand size for Phase 10 (can have many cards)
+            const cardScale = myPlayer.hand.length > 15 ? 0.35 : myPlayer.hand.length > 12 ? 0.45 : myPlayer.hand.length > 8 ? 0.5 : 0.6;
+            return (
               <TouchableOpacity
                 key={card.id}
                 onPress={() => handleCardClick(card)}
                 style={[
                   styles.cardWrapper,
                   selectedCards.some(c => c.id === card.id) && styles.selectedCard,
+                  { zIndex: index },
                 ]}
               >
-                <CardComponent card={card} scale={0.6} />
+                <CardComponent card={card} scale={cardScale} />
               </TouchableOpacity>
-            ))}
-          </View>
-        </ScrollView>
+            );
+          })}
+        </View>
       </View>
 
       {!myPlayer.hasLaidDownPhase && selectedCards.length > 0 && (
@@ -484,10 +487,14 @@ const styles = StyleSheet.create({
   },
   hand: {
     flexDirection: 'row',
-    gap: 8,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 2,
+    marginLeft: -15,
   },
   cardWrapper: {
-    marginHorizontal: 4,
+    marginLeft: 15,
+    marginVertical: 3,
   },
   selectedCard: {
     transform: [{ translateY: -10 }],

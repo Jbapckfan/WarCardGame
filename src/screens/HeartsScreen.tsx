@@ -355,9 +355,11 @@ export const HeartsScreen: React.FC<HeartsScreenProps> = ({ gameId, playerId, on
 
       <View style={styles.handContainer}>
         <Text style={styles.handLabel}>Your Hand ({myPlayer.hand.length} cards)</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View style={styles.hand}>
-            {myPlayer.hand.map((card) => (
+        <View style={styles.hand}>
+          {myPlayer.hand.map((card, index) => {
+            // Hearts always has 13 cards, scale appropriately
+            const cardScale = 0.5;
+            return (
               <TouchableOpacity
                 key={card.id}
                 onPress={() => {
@@ -370,13 +372,14 @@ export const HeartsScreen: React.FC<HeartsScreenProps> = ({ gameId, playerId, on
                 style={[
                   styles.cardWrapper,
                   selectedCards.some(c => c.id === card.id) && styles.selectedCard,
+                  { zIndex: index },
                 ]}
               >
-                <CardComponent card={card} scale={0.6} />
+                <CardComponent card={card} scale={cardScale} />
               </TouchableOpacity>
-            ))}
-          </View>
-        </ScrollView>
+            );
+          })}
+        </View>
       </View>
 
       {isPassing && (
@@ -503,10 +506,14 @@ const styles = StyleSheet.create({
   },
   hand: {
     flexDirection: 'row',
-    gap: 8,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 2,
+    marginLeft: -15,
   },
   cardWrapper: {
-    marginHorizontal: 4,
+    marginLeft: 15,
+    marginVertical: 3,
   },
   selectedCard: {
     transform: [{ translateY: -10 }],

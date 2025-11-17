@@ -282,22 +282,25 @@ export const GoFishScreen: React.FC<GoFishScreenProps> = ({ gameId, playerId, on
 
       <View style={styles.handContainer}>
         <Text style={styles.handLabel}>Your Hand ({myPlayer.hand.length} cards)</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View style={styles.hand}>
-            {myPlayer.hand.map((card) => (
+        <View style={styles.hand}>
+          {myPlayer.hand.map((card, index) => {
+            // Scale cards based on hand size
+            const cardScale = myPlayer.hand.length > 13 ? 0.4 : myPlayer.hand.length > 9 ? 0.5 : 0.6;
+            return (
               <TouchableOpacity
                 key={card.id}
                 onPress={() => handleCardClick(card)}
                 style={[
                   styles.cardWrapper,
                   selectedRank === card.rank && styles.selectedCard,
+                  { zIndex: index },
                 ]}
               >
-                <CardComponent card={card} scale={0.6} />
+                <CardComponent card={card} scale={cardScale} />
               </TouchableOpacity>
-            ))}
-          </View>
-        </ScrollView>
+            );
+          })}
+        </View>
       </View>
 
       {isMyTurn && selectedRank && (
@@ -437,10 +440,14 @@ const styles = StyleSheet.create({
   },
   hand: {
     flexDirection: 'row',
-    gap: 8,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 2,
+    marginLeft: -20,
   },
   cardWrapper: {
-    marginHorizontal: 4,
+    marginLeft: 20,
+    marginVertical: 4,
   },
   selectedCard: {
     transform: [{ translateY: -10 }],

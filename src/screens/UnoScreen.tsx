@@ -354,19 +354,22 @@ export const UnoScreen: React.FC<UnoScreenProps> = ({ gameId, playerId, onExit }
 
       <View style={styles.handContainer}>
         <Text style={styles.handLabel}>Your Hand ({myPlayer.hand.length} cards)</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View style={styles.hand}>
-            {myPlayer.hand.map((card) => (
+        <View style={styles.hand}>
+          {myPlayer.hand.map((card, index) => {
+            // Scale cards based on hand size
+            const cardScale = myPlayer.hand.length > 10 ? 0.5 : myPlayer.hand.length > 7 ? 0.6 : 0.7;
+            return (
               <TouchableOpacity
                 key={card.id}
+                style={[styles.cardInHand, { zIndex: index }]}
                 onPress={() => handlePlayCard(card)}
                 disabled={!isMyTurn || gameState.mustDraw}
               >
-                <UnoCardComponent card={card} scale={0.8} />
+                <UnoCardComponent card={card} scale={cardScale} />
               </TouchableOpacity>
-            ))}
-          </View>
-        </ScrollView>
+            );
+          })}
+        </View>
       </View>
 
       {isMyTurn && !gameState.mustDraw && (
@@ -513,7 +516,14 @@ const styles = StyleSheet.create({
   },
   hand: {
     flexDirection: 'row',
-    gap: 8,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 4,
+    marginLeft: -30,
+  },
+  cardInHand: {
+    marginLeft: 30,
+    marginVertical: 4,
   },
   passButton: {
     backgroundColor: '#6B7280',
