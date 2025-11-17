@@ -23,6 +23,7 @@ import { getAvailableRooms, createGameRoom, joinGameRoom } from '../utils/fireba
 import { registerForPushNotificationsAsync } from '../utils/notificationService';
 import { database } from '../config/firebase';
 import { hapticService } from '../utils/hapticService';
+import { AIDifficultyModal, AIDifficulty } from '../components/AIDifficultyModal';
 
 interface MenuScreenProps {
   onStartGame: (gameId: string, playerId: string, gameType: 'war' | 'ers' | 'phase10' | 'kings' | 'gofish' | 'uno' | 'hearts') => void;
@@ -47,6 +48,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onViewStats
   const [showUnoMenu, setShowUnoMenu] = useState(false);
   const [showHeartsMenu, setShowHeartsMenu] = useState(false);
   const [showJoinMenu, setShowJoinMenu] = useState(false);
+  const [showAIDifficultyModal, setShowAIDifficultyModal] = useState(false);
   const [sixSevenRule, setSixSevenRule] = useState(true);
   const [availableRooms, setAvailableRooms] = useState<GameRoom[]>([]);
   const [roomCode, setRoomCode] = useState('');
@@ -80,14 +82,21 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onViewStats
 
   const handleQuickPlay = async () => {
     await hapticService.medium();
-    // Quick play starts a random game against AI
+    setShowAIDifficultyModal(true);
+  };
+
+  const handleAIDifficultySelect = async (difficulty: AIDifficulty) => {
+    setShowAIDifficultyModal(false);
+    await hapticService.success();
+
+    // Quick play starts a random game against AI with selected difficulty
     const games: ('war' | 'ers' | 'phase10' | 'kings' | 'gofish' | 'uno' | 'hearts')[] = [
       'war',
       'ers',
       'gofish',
     ];
     const randomGame = games[Math.floor(Math.random() * games.length)];
-    const gameId = `local_quickplay_${Date.now()}`;
+    const gameId = `local_${difficulty}_${Date.now()}`;
     onStartGame(gameId, playerId, randomGame);
   };
 
@@ -724,6 +733,13 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onViewStats
           </View>
         </View>
       </Modal>
+
+      {/* AI Difficulty Selection Modal */}
+      <AIDifficultyModal
+        visible={showAIDifficultyModal}
+        onSelect={handleAIDifficultySelect}
+        onClose={() => setShowAIDifficultyModal(false)}
+      />
     </View>
   );
 };

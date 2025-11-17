@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { PlayerStats } from '../types/stats';
 import { loadStats } from '../utils/statsService';
+import { StatsSkeleton } from '../components/LoadingStates';
 
 interface StatsScreenProps {
   playerId: string;
@@ -31,7 +32,14 @@ export const StatsScreen: React.FC<StatsScreenProps> = ({ playerId, onBack }) =>
   if (!stats) {
     return (
       <SafeAreaView style={styles.container}>
-        <Text style={styles.loadingText}>Loading stats...</Text>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={onBack} style={styles.backButton}>
+            <Text style={styles.backText}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>Statistics</Text>
+          <View style={styles.placeholder} />
+        </View>
+        <StatsSkeleton />
       </SafeAreaView>
     );
   }

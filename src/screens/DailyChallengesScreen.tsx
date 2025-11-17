@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { DailyChallenge } from '../types/stats';
 import { loadTodaysChallenges } from '../utils/dailyChallengesService';
+import { ChallengesSkeleton } from '../components/LoadingStates';
 
 interface DailyChallengesScreenProps {
   onBack: () => void;
@@ -16,18 +17,36 @@ interface DailyChallengesScreenProps {
 
 export const DailyChallengesScreen: React.FC<DailyChallengesScreenProps> = ({ onBack }) => {
   const [challenges, setChallenges] = useState<DailyChallenge[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadChallenges();
   }, []);
 
   const loadChallenges = async () => {
+    setLoading(true);
     const todaysChallenges = await loadTodaysChallenges();
     setChallenges(todaysChallenges);
+    setLoading(false);
   };
 
   const completedCount = challenges.filter(c => c.completed).length;
   const totalXP = challenges.reduce((sum, c) => sum + c.reward.xp, 0);
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={onBack} style={styles.backButton}>
+            <Text style={styles.backText}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>Daily Challenges</Text>
+          <View style={styles.placeholder} />
+        </View>
+        <ChallengesSkeleton />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>

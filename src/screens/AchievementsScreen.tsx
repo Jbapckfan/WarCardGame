@@ -10,6 +10,7 @@ import {
 import { Achievement, PlayerStats } from '../types/stats';
 import { ACHIEVEMENTS, checkAchievements, getAchievementProgress } from '../utils/achievementsService';
 import { loadStats } from '../utils/statsService';
+import { AchievementsSkeleton } from '../components/LoadingStates';
 
 interface AchievementsScreenProps {
   playerId: string;
@@ -36,7 +37,14 @@ export const AchievementsScreen: React.FC<AchievementsScreenProps> = ({ playerId
   if (!stats) {
     return (
       <SafeAreaView style={styles.container}>
-        <Text style={styles.loadingText}>Loading achievements...</Text>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={onBack} style={styles.backButton}>
+            <Text style={styles.backText}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>Achievements</Text>
+          <View style={styles.placeholder} />
+        </View>
+        <AchievementsSkeleton />
       </SafeAreaView>
     );
   }

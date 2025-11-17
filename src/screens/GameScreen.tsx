@@ -6,14 +6,17 @@ import {
   TouchableOpacity,
   Alert,
   SafeAreaView,
+  Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CardComponent } from '../components/CardComponent';
 import { RoomShareModal } from '../components/RoomShareModal';
+import { CardPlayAnimation } from '../components/CardPlayAnimation';
 import { GameState } from '../types/game';
 import { listenToGameState, updateGameState } from '../utils/firebaseService';
 import { playRound, resolveWar } from '../utils/gameLogic';
 import { sendPushNotification, sendRichGameNotification } from '../utils/notificationService';
+import { hapticService } from '../utils/hapticService';
 
 interface GameScreenProps {
   gameId: string;
@@ -25,6 +28,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameId, playerId, onExit
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [isPlayingCard, setIsPlayingCard] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [animatingCard, setAnimatingCard] = useState<any>(null);
   const [lastPlayedCards, setLastPlayedCards] = useState<{
     player1Card: any;
     player2Card: any;
@@ -41,6 +45,9 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameId, playerId, onExit
     player1InitialCard: any;
     player2InitialCard: any;
   } | null>(null);
+
+  const screenWidth = Dimensions.get('window').width;
+  const screenHeight = Dimensions.get('window').height;
 
   useEffect(() => {
     // Check if this is a local game
@@ -158,6 +165,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameId, playerId, onExit
     if (isLocalGame && (isPlayingCard || gameState.gameStatus !== 'playing')) return;
 
     setIsPlayingCard(true);
+    await hapticService.medium();
 
     try {
       const player1 = gameState.player1;
@@ -480,6 +488,16 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameId, playerId, onExit
       <TouchableOpacity style={styles.exitButton} onPress={onExit}>
         <Text style={styles.buttonText}>Exit Game</Text>
       </TouchableOpacity>
+
+      {/* Card Play Animation */}
+      <CardPlayAnimation
+        card={animatingCard}
+        fromX={screenWidth / 2}
+        fromY={screenHeight * 0.8}
+        toX={screenWidth / 2}
+        toY={screenHeight * 0.4}
+        onComplete={() => setAnimatingCard(null)}
+      />
     </View>
     </SafeAreaView>
     </LinearGradient>

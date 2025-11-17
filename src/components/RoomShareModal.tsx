@@ -10,6 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
+import QRCode from 'react-native-qrcode-svg';
 import { hapticService } from '../utils/hapticService';
 
 interface RoomShareModalProps {
@@ -76,12 +77,19 @@ export const RoomShareModal: React.FC<RoomShareModalProps> = ({
           </View>
 
           <View style={styles.content}>
-            {/* QR Code Placeholder */}
+            {/* QR Code */}
             <View style={styles.qrContainer}>
-              <View style={styles.qrPlaceholder}>
-                <Text style={styles.qrIcon}>📱</Text>
-                <Text style={styles.qrText}>QR Code</Text>
-                <Text style={styles.qrSubtext}>{roomCode}</Text>
+              <View style={styles.qrCodeWrapper}>
+                <QRCode
+                  value={deepLink}
+                  size={200}
+                  backgroundColor="white"
+                  color="#1E293B"
+                  logo={require('../../assets/icon.png')}
+                  logoSize={40}
+                  logoBackgroundColor="white"
+                  logoBorderRadius={20}
+                />
               </View>
               <Text style={styles.qrLabel}>Scan to join</Text>
             </View>
@@ -186,7 +194,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 24,
   },
-  qrPlaceholder: {
+  qrCodeWrapper: {
     width: 200,
     height: 200,
     backgroundColor: 'white',
@@ -194,22 +202,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
-  },
-  qrIcon: {
-    fontSize: 48,
-    marginBottom: 8,
-  },
-  qrText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  qrSubtext: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#F59E0B',
-    letterSpacing: 2,
+    padding: 10,
   },
   qrLabel: {
     fontSize: 14,
