@@ -25,9 +25,12 @@ import { database } from '../config/firebase';
 
 interface MenuScreenProps {
   onStartGame: (gameId: string, playerId: string, gameType: 'war' | 'ers' | 'phase10' | 'kings' | 'gofish' | 'uno' | 'hearts') => void;
+  onViewStats: () => void;
+  onViewAchievements: () => void;
+  onViewDailyChallenges: () => void;
 }
 
-export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
+export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onViewStats, onViewAchievements, onViewDailyChallenges }) => {
   const [playerName, setPlayerName] = useState('');
   const [playerId] = useState(`player_${Date.now()}`);
   const [pushToken, setPushToken] = useState<string>();
@@ -161,6 +164,35 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
             onChangeText={setPlayerName}
           />
         </View>
+
+        {/* Stats and Achievements Buttons */}
+        <View style={styles.utilityButtons}>
+          <TouchableOpacity
+            style={styles.utilityButton}
+            onPress={onViewStats}
+          >
+            <Text style={styles.utilityButtonIcon}>📊</Text>
+            <Text style={styles.utilityButtonText}>Stats</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.utilityButton}
+            onPress={onViewAchievements}
+          >
+            <Text style={styles.utilityButtonIcon}>🏆</Text>
+            <Text style={styles.utilityButtonText}>Achievements</Text>
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity
+          style={styles.dailyChallengesButton}
+          onPress={onViewDailyChallenges}
+        >
+          <Text style={styles.dailyChallengesIcon}>⭐</Text>
+          <View style={styles.dailyChallengesContent}>
+            <Text style={styles.dailyChallengesTitle}>Daily Challenges</Text>
+            <Text style={styles.dailyChallengesSubtitle}>Complete challenges for bonus XP</Text>
+          </View>
+        </TouchableOpacity>
 
         <View style={styles.buttonContainer}>
           <TouchableOpacity
@@ -801,5 +833,57 @@ const styles = StyleSheet.create({
     color: '#64748B',
     textAlign: 'center',
     padding: 24,
+  },
+  utilityButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 24,
+  },
+  utilityButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#1E293B',
+    borderWidth: 2,
+    borderColor: '#334155',
+    borderRadius: 12,
+    padding: 16,
+  },
+  utilityButtonIcon: {
+    fontSize: 24,
+    marginRight: 8,
+  },
+  utilityButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#E2E8F0',
+  },
+  dailyChallengesButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F59E0B',
+    borderWidth: 2,
+    borderColor: '#FBBF24',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+  },
+  dailyChallengesIcon: {
+    fontSize: 32,
+    marginRight: 12,
+  },
+  dailyChallengesContent: {
+    flex: 1,
+  },
+  dailyChallengesTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 2,
+  },
+  dailyChallengesSubtitle: {
+    fontSize: 12,
+    color: '#FEF3C7',
   },
 });

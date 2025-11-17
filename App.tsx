@@ -9,11 +9,14 @@ import { KingsCornersScreen } from './src/screens/KingsCornersScreen';
 import { GoFishScreen } from './src/screens/GoFishScreen';
 import { UnoScreen } from './src/screens/UnoScreen';
 import { HeartsScreen } from './src/screens/HeartsScreen';
+import { StatsScreen } from './src/screens/StatsScreen';
+import { AchievementsScreen } from './src/screens/AchievementsScreen';
+import { DailyChallengesScreen } from './src/screens/DailyChallengesScreen';
 
 type GameType = 'war' | 'ers' | 'phase10' | 'kings' | 'gofish' | 'uno' | 'hearts' | null;
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<'menu' | 'game'>('menu');
+  const [currentScreen, setCurrentScreen] = useState<'menu' | 'game' | 'stats' | 'achievements' | 'dailyChallenges'>('menu');
   const [gameId, setGameId] = useState<string | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [gameType, setGameType] = useState<GameType>(null);
@@ -30,6 +33,22 @@ export default function App() {
     setGameId(null);
     setPlayerId(null);
     setGameType(null);
+  };
+
+  const handleViewStats = () => {
+    setCurrentScreen('stats');
+  };
+
+  const handleViewAchievements = () => {
+    setCurrentScreen('achievements');
+  };
+
+  const handleViewDailyChallenges = () => {
+    setCurrentScreen('dailyChallenges');
+  };
+
+  const handleBackToMenu = () => {
+    setCurrentScreen('menu');
   };
 
   const renderGameScreen = () => {
@@ -54,14 +73,41 @@ export default function App() {
     }
   };
 
+  const renderScreen = () => {
+    switch (currentScreen) {
+      case 'menu':
+        return (
+          <MenuScreen
+            onStartGame={handleStartGame}
+            onViewStats={handleViewStats}
+            onViewAchievements={handleViewAchievements}
+            onViewDailyChallenges={handleViewDailyChallenges}
+          />
+        );
+      case 'stats':
+        return <StatsScreen playerId={playerId || `player_${Date.now()}`} onBack={handleBackToMenu} />;
+      case 'achievements':
+        return <AchievementsScreen playerId={playerId || `player_${Date.now()}`} onBack={handleBackToMenu} />;
+      case 'dailyChallenges':
+        return <DailyChallengesScreen onBack={handleBackToMenu} />;
+      case 'game':
+        return renderGameScreen();
+      default:
+        return (
+          <MenuScreen
+            onStartGame={handleStartGame}
+            onViewStats={handleViewStats}
+            onViewAchievements={handleViewAchievements}
+            onViewDailyChallenges={handleViewDailyChallenges}
+          />
+        );
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
-      {currentScreen === 'menu' ? (
-        <MenuScreen onStartGame={handleStartGame} />
-      ) : (
-        renderGameScreen()
-      )}
+      {renderScreen()}
     </SafeAreaView>
   );
 }
