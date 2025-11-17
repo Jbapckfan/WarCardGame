@@ -22,6 +22,7 @@ import { GameRoom } from '../types/game';
 import { getAvailableRooms, createGameRoom, joinGameRoom } from '../utils/firebaseService';
 import { registerForPushNotificationsAsync } from '../utils/notificationService';
 import { database } from '../config/firebase';
+import { hapticService } from '../utils/hapticService';
 
 interface MenuScreenProps {
   onStartGame: (gameId: string, playerId: string, gameType: 'war' | 'ers' | 'phase10' | 'kings' | 'gofish' | 'uno' | 'hearts') => void;
@@ -29,9 +30,12 @@ interface MenuScreenProps {
   onViewAchievements: () => void;
   onViewDailyChallenges: () => void;
   onViewTutorial: () => void;
+  onViewSettings: () => void;
+  onViewCosmetics: () => void;
+  onViewGameRules: (gameType: 'war' | 'ers' | 'phase10' | 'kings' | 'gofish' | 'uno' | 'hearts') => void;
 }
 
-export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onViewStats, onViewAchievements, onViewDailyChallenges, onViewTutorial }) => {
+export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onViewStats, onViewAchievements, onViewDailyChallenges, onViewTutorial, onViewSettings, onViewCosmetics, onViewGameRules }) => {
   const [playerName, setPlayerName] = useState('');
   const [playerId] = useState(`player_${Date.now()}`);
   const [pushToken, setPushToken] = useState<string>();
@@ -74,7 +78,22 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onViewStats
     };
   });
 
+  const handleQuickPlay = async () => {
+    await hapticService.medium();
+    // Quick play starts a random game against AI
+    const games: ('war' | 'ers' | 'phase10' | 'kings' | 'gofish' | 'uno' | 'hearts')[] = [
+      'war',
+      'ers',
+      'gofish',
+    ];
+    const randomGame = games[Math.floor(Math.random() * games.length)];
+    const gameId = `local_quickplay_${Date.now()}`;
+    onStartGame(gameId, playerId, randomGame);
+  };
+
   const handleCreateGame = async (type: 'war' | 'ers' | 'phase10' | 'kings' | 'gofish' | 'uno' | 'hearts') => {
+    await hapticService.light();
+
     // Check if Firebase is available
     if (!database) {
       // Start local game without Firebase - no name required
@@ -85,14 +104,17 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onViewStats
 
     // For remote games, require a name
     if (!playerName.trim()) {
+      await hapticService.warning();
       Alert.alert('Error', 'Please enter your name for online play');
       return;
     }
 
     try {
       const gameId = await createGameRoom(playerId, playerName, sixSevenRule, pushToken);
+      await hapticService.success();
       onStartGame(gameId, playerId, type);
     } catch (error) {
+      await hapticService.error();
       Alert.alert('Error', 'Failed to create game');
     }
   };
@@ -184,6 +206,24 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onViewStats
           </TouchableOpacity>
         </View>
 
+        {/* Settings and Cosmetics Buttons */}
+        <View style={styles.utilityButtons}>
+          <TouchableOpacity
+            style={styles.utilityButton}
+            onPress={onViewSettings}
+          >
+            <Text style={styles.utilityButtonIcon}>⚙️</Text>
+            <Text style={styles.utilityButtonText}>Settings</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.utilityButton}
+            onPress={onViewCosmetics}
+          >
+            <Text style={styles.utilityButtonIcon}>🎨</Text>
+            <Text style={styles.utilityButtonText}>Customize</Text>
+          </TouchableOpacity>
+        </View>
+
         <TouchableOpacity
           style={styles.dailyChallengesButton}
           onPress={onViewDailyChallenges}
@@ -203,6 +243,17 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onViewStats
           <View style={styles.tutorialContent}>
             <Text style={styles.tutorialTitle}>ERS Tutorial</Text>
             <Text style={styles.tutorialSubtitle}>Learn the rules & practice slapping</Text>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.quickPlayButton}
+          onPress={handleQuickPlay}
+        >
+          <Text style={styles.quickPlayIcon}>⚡</Text>
+          <View style={styles.quickPlayContent}>
+            <Text style={styles.quickPlayTitle}>Quick Play</Text>
+            <Text style={styles.quickPlaySubtitle}>Instant match against AI</Text>
           </View>
         </TouchableOpacity>
 
@@ -305,6 +356,16 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onViewStats
             </TouchableOpacity>
 
             <TouchableOpacity
+              style={styles.rulesButton}
+              onPress={() => {
+                setShowWarMenu(false);
+                onViewGameRules('war');
+              }}
+            >
+              <Text style={styles.rulesButtonText}>📖 View Rules</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
               style={styles.cancelButton}
               onPress={() => setShowWarMenu(false)}
             >
@@ -341,6 +402,16 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onViewStats
               }}
             >
               <Text style={styles.modalButtonText}>Join Game</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.rulesButton}
+              onPress={() => {
+                setShowERSMenu(false);
+                onViewGameRules('ers');
+              }}
+            >
+              <Text style={styles.rulesButtonText}>📖 View Rules</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -383,6 +454,16 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onViewStats
             </TouchableOpacity>
 
             <TouchableOpacity
+              style={styles.rulesButton}
+              onPress={() => {
+                setShowPhase10Menu(false);
+                onViewGameRules('phase10');
+              }}
+            >
+              <Text style={styles.rulesButtonText}>📖 View Rules</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
               style={styles.cancelButton}
               onPress={() => setShowPhase10Menu(false)}
             >
@@ -419,6 +500,16 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onViewStats
               }}
             >
               <Text style={styles.modalButtonText}>Join Game</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.rulesButton}
+              onPress={() => {
+                setShowKingsMenu(false);
+                onViewGameRules('kings');
+              }}
+            >
+              <Text style={styles.rulesButtonText}>📖 View Rules</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -461,6 +552,16 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onViewStats
             </TouchableOpacity>
 
             <TouchableOpacity
+              style={styles.rulesButton}
+              onPress={() => {
+                setShowGoFishMenu(false);
+                onViewGameRules('gofish');
+              }}
+            >
+              <Text style={styles.rulesButtonText}>📖 View Rules</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
               style={styles.cancelButton}
               onPress={() => setShowGoFishMenu(false)}
             >
@@ -500,6 +601,16 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onViewStats
             </TouchableOpacity>
 
             <TouchableOpacity
+              style={styles.rulesButton}
+              onPress={() => {
+                setShowUnoMenu(false);
+                onViewGameRules('uno');
+              }}
+            >
+              <Text style={styles.rulesButtonText}>📖 View Rules</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
               style={styles.cancelButton}
               onPress={() => setShowUnoMenu(false)}
             >
@@ -536,6 +647,16 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame, onViewStats
               }}
             >
               <Text style={styles.modalButtonText}>Join Game</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.rulesButton}
+              onPress={() => {
+                setShowHeartsMenu(false);
+                onViewGameRules('hearts');
+              }}
+            >
+              <Text style={styles.rulesButtonText}>📖 View Rules</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -807,6 +928,20 @@ const styles = StyleSheet.create({
     padding: 12,
     marginTop: 12,
   },
+  rulesButton: {
+    backgroundColor: '#1E293B',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#3B82F6',
+    padding: 12,
+    marginBottom: 12,
+  },
+  rulesButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#60A5FA',
+    textAlign: 'center',
+  },
   cancelButton: {
     padding: 12,
   },
@@ -924,5 +1059,41 @@ const styles = StyleSheet.create({
   tutorialSubtitle: {
     fontSize: 12,
     color: '#E9D5FF',
+  },
+  quickPlayButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#DC2626',
+    borderWidth: 3,
+    borderColor: '#FCA5A5',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 32,
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.6,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  quickPlayIcon: {
+    fontSize: 40,
+    marginRight: 16,
+  },
+  quickPlayContent: {
+    flex: 1,
+  },
+  quickPlayTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 4,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
+  },
+  quickPlaySubtitle: {
+    fontSize: 14,
+    color: '#FEE2E2',
+    fontWeight: '600',
   },
 });

@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CardComponent } from '../components/CardComponent';
+import { RoomShareModal } from '../components/RoomShareModal';
 import { GameState } from '../types/game';
 import { listenToGameState, updateGameState } from '../utils/firebaseService';
 import { playRound, resolveWar } from '../utils/gameLogic';
@@ -23,6 +24,7 @@ interface GameScreenProps {
 export const GameScreen: React.FC<GameScreenProps> = ({ gameId, playerId, onExit }) => {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [isPlayingCard, setIsPlayingCard] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [lastPlayedCards, setLastPlayedCards] = useState<{
     player1Card: any;
     player2Card: any;
@@ -82,13 +84,33 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameId, playerId, onExit
   }, [gameId]);
 
   if (!gameState || !gameState.player2) {
+    // Only show share button for non-local games
+    const isLocalGame = gameId.startsWith('local_');
+
     return (
       <View style={styles.container}>
         <Text style={styles.waitingText}>Waiting for opponent...</Text>
         <Text style={styles.roomCode}>Room Code: {gameId}</Text>
+
+        {!isLocalGame && (
+          <TouchableOpacity
+            style={styles.shareButton}
+            onPress={() => setShowShareModal(true)}
+          >
+            <Text style={styles.shareButtonText}>📤 Share Room</Text>
+          </TouchableOpacity>
+        )}
+
         <TouchableOpacity style={styles.exitButton} onPress={onExit}>
           <Text style={styles.buttonText}>Exit</Text>
         </TouchableOpacity>
+
+        <RoomShareModal
+          visible={showShareModal}
+          roomCode={gameId}
+          gameType="WAR"
+          onClose={() => setShowShareModal(false)}
+        />
       </View>
     );
   }
@@ -640,6 +662,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 8,
     marginVertical: 4,
+  },
+  shareButton: {
+    backgroundColor: '#10B981',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    marginVertical: 16,
+  },
+  shareButtonText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    textAlign: 'center',
+    fontWeight: 'bold',
   },
   exitButton: {
     backgroundColor: '#EF4444',
