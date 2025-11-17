@@ -24,7 +24,7 @@ import { registerForPushNotificationsAsync } from '../utils/notificationService'
 import { database } from '../config/firebase';
 
 interface MenuScreenProps {
-  onStartGame: (gameId: string, playerId: string, gameType: 'war' | 'ers' | 'phase10' | 'kings') => void;
+  onStartGame: (gameId: string, playerId: string, gameType: 'war' | 'ers' | 'phase10' | 'kings' | 'gofish' | 'uno' | 'hearts') => void;
 }
 
 export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
@@ -35,11 +35,14 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
   const [showERSMenu, setShowERSMenu] = useState(false);
   const [showPhase10Menu, setShowPhase10Menu] = useState(false);
   const [showKingsMenu, setShowKingsMenu] = useState(false);
+  const [showGoFishMenu, setShowGoFishMenu] = useState(false);
+  const [showUnoMenu, setShowUnoMenu] = useState(false);
+  const [showHeartsMenu, setShowHeartsMenu] = useState(false);
   const [showJoinMenu, setShowJoinMenu] = useState(false);
   const [sixSevenRule, setSixSevenRule] = useState(true);
   const [availableRooms, setAvailableRooms] = useState<GameRoom[]>([]);
   const [roomCode, setRoomCode] = useState('');
-  const [gameType, setGameType] = useState<'war' | 'ers' | 'phase10' | 'kings'>('war');
+  const [gameType, setGameType] = useState<'war' | 'ers' | 'phase10' | 'kings' | 'gofish' | 'uno' | 'hearts'>('war');
 
   const titleScale = useSharedValue(1);
   const titleRotate = useSharedValue(0);
@@ -67,7 +70,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
     };
   });
 
-  const handleCreateGame = async (type: 'war' | 'ers' | 'phase10' | 'kings') => {
+  const handleCreateGame = async (type: 'war' | 'ers' | 'phase10' | 'kings' | 'gofish' | 'uno' | 'hearts') => {
     // Check if Firebase is available
     if (!database) {
       // Start local game without Firebase - no name required
@@ -117,7 +120,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
     }
   };
 
-  const openJoinMenu = async (type: 'war' | 'ers' | 'phase10' | 'kings') => {
+  const openJoinMenu = async (type: 'war' | 'ers' | 'phase10' | 'kings' | 'gofish' | 'uno' | 'hearts') => {
     setGameType(type);
     await loadAvailableRooms();
     setShowJoinMenu(true);
@@ -190,6 +193,30 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
           >
             <Text style={styles.gameButtonTitle}>👑 KINGS IN THE CORNERS</Text>
             <Text style={styles.gameButtonSubtitle}>Strategy and skill</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.gameButton, styles.goFishButton]}
+            onPress={() => setShowGoFishMenu(true)}
+          >
+            <Text style={styles.gameButtonTitle}>🐟 GO FISH</Text>
+            <Text style={styles.gameButtonSubtitle}>Collect matching sets</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.gameButton, styles.unoButton]}
+            onPress={() => setShowUnoMenu(true)}
+          >
+            <Text style={styles.gameButtonTitle}>🎴 UNO</Text>
+            <Text style={styles.gameButtonSubtitle}>Say UNO to win!</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.gameButton, styles.heartsButton]}
+            onPress={() => setShowHeartsMenu(true)}
+          >
+            <Text style={styles.gameButtonTitle}>♥ HEARTS</Text>
+            <Text style={styles.gameButtonSubtitle}>Avoid hearts & queen of spades</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -360,6 +387,123 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
         </View>
       </Modal>
 
+      {/* Go Fish Menu Modal */}
+      <Modal visible={showGoFishMenu} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Go Fish</Text>
+            <Text style={styles.modalDescription}>
+              Ask for cards to make sets of 4!
+            </Text>
+
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => {
+                setShowGoFishMenu(false);
+                handleCreateGame('gofish');
+              }}
+            >
+              <Text style={styles.modalButtonText}>Create Game</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.modalButton, styles.secondaryButton]}
+              onPress={() => {
+                setShowGoFishMenu(false);
+                openJoinMenu('gofish');
+              }}
+            >
+              <Text style={styles.modalButtonText}>Join Game</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => setShowGoFishMenu(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* UNO Menu Modal */}
+      <Modal visible={showUnoMenu} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>UNO</Text>
+            <Text style={styles.modalDescription}>
+              Match colors or numbers - first to empty your hand wins!
+            </Text>
+
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => {
+                setShowUnoMenu(false);
+                handleCreateGame('uno');
+              }}
+            >
+              <Text style={styles.modalButtonText}>Create Game</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.modalButton, styles.secondaryButton]}
+              onPress={() => {
+                setShowUnoMenu(false);
+                openJoinMenu('uno');
+              }}
+            >
+              <Text style={styles.modalButtonText}>Join Game</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => setShowUnoMenu(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Hearts Menu Modal */}
+      <Modal visible={showHeartsMenu} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Hearts</Text>
+            <Text style={styles.modalDescription}>
+              Avoid taking hearts and the Queen of Spades!
+            </Text>
+
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => {
+                setShowHeartsMenu(false);
+                handleCreateGame('hearts');
+              }}
+            >
+              <Text style={styles.modalButtonText}>Create Game</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.modalButton, styles.secondaryButton]}
+              onPress={() => {
+                setShowHeartsMenu(false);
+                openJoinMenu('hearts');
+              }}
+            >
+              <Text style={styles.modalButtonText}>Join Game</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => setShowHeartsMenu(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       {/* Join Game Modal */}
       <Modal visible={showJoinMenu} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
@@ -506,6 +650,15 @@ const styles = StyleSheet.create({
   },
   kingsButton: {
     backgroundColor: '#D97706',
+  },
+  goFishButton: {
+    backgroundColor: '#0EA5E9',
+  },
+  unoButton: {
+    backgroundColor: '#EF4444',
+  },
+  heartsButton: {
+    backgroundColor: '#BE123C',
   },
   gameButtonTitle: {
     fontSize: 28,

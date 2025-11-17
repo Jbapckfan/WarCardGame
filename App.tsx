@@ -6,8 +6,11 @@ import { GameScreen } from './src/screens/GameScreen';
 import { ERSScreen } from './src/screens/ERSScreen';
 import { Phase10Screen } from './src/screens/Phase10Screen';
 import { KingsCornersScreen } from './src/screens/KingsCornersScreen';
+import { GoFishScreen } from './src/screens/GoFishScreen';
+import { UnoScreen } from './src/screens/UnoScreen';
+import { HeartsScreen } from './src/screens/HeartsScreen';
 
-type GameType = 'war' | 'ers' | 'phase10' | 'kings' | null;
+type GameType = 'war' | 'ers' | 'phase10' | 'kings' | 'gofish' | 'uno' | 'hearts' | null;
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<'menu' | 'game'>('menu');
@@ -39,6 +42,12 @@ export default function App() {
         return <Phase10Screen gameId={gameId} playerId={playerId} onExit={handleExitGame} />;
       case 'kings':
         return <KingsCornersScreen gameId={gameId} playerId={playerId} onExit={handleExitGame} />;
+      case 'gofish':
+        return <GoFishScreen gameId={gameId} playerId={playerId} onExit={handleExitGame} />;
+      case 'uno':
+        return <UnoScreen gameId={gameId} playerId={playerId} onExit={handleExitGame} />;
+      case 'hearts':
+        return <HeartsScreen gameId={gameId} playerId={playerId} onExit={handleExitGame} />;
       case 'war':
       default:
         return <GameScreen gameId={gameId} playerId={playerId} onExit={handleExitGame} />;
