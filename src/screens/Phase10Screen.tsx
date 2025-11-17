@@ -20,20 +20,49 @@ import {
   getCurrentPhase,
 } from '../utils/phase10Logic';
 import { saveGame } from '../utils/gameSaveService';
+import {
+  listenToPhase10GameState,
+  drawPhase10Card,
+  discardPhase10Card,
+  layDownPhase,
+} from '../utils/phase10FirebaseService';
+import { initializeAuth, getCurrentUserId } from '../utils/authService';
 
 interface Phase10ScreenProps {
   gameId: string;
-  playerId: string;
+  playerId?: string;
   playerCount?: number;
   resumeState?: Phase10GameState;
   onExit: () => void;
 }
 
-export const Phase10Screen: React.FC<Phase10ScreenProps> = ({ gameId, playerId, playerCount = 2, resumeState, onExit }) => {
+export const Phase10Screen: React.FC<Phase10ScreenProps> = ({ gameId, playerId: initialPlayerId, playerCount = 2, resumeState, onExit }) => {
   const [gameState, setGameState] = useState<Phase10GameState | null>(resumeState || null);
+  const [currentUserId, setCurrentUserId] = useState<string>(initialPlayerId || '');
+  const [isFirebaseGame, setIsFirebaseGame] = useState<boolean>(false);
   const [selectedCards, setSelectedCards] = useState<Phase10Card[]>([]);
   const [hasDrawn, setHasDrawn] = useState(false);
   const [sortBy, setSortBy] = useState<'none' | 'color' | 'number'>('none');
+
+  // Initialize auth
+  useEffect(() => {
+    const init = async () => {
+      await initializeAuth();
+      const userId = await getCurrentUserId();
+      setCurrentUserId(userId);
+      setIsFirebaseGame(!gameId.startsWith('local_'));
+    };
+    init();
+  }, [gameId]);
+
+  // Firebase listener
+  useEffect(() => {
+    if (!isFirebaseGame || !gameId) return;
+    const unsubscribe = listenToPhase10GameState(gameId, (state) => {
+      if (state) setGameState(state);
+    });
+    return () => unsubscribe();
+  }, [gameId, isFirebaseGame]);
 
   const handleExitWithSave = async () => {
     if (gameState && gameState.gameStatus === 'playing') {
@@ -42,11 +71,10 @@ export const Phase10Screen: React.FC<Phase10ScreenProps> = ({ gameId, playerId, 
     onExit();
   };
 
+  // Initialize local games only
   useEffect(() => {
-    // Skip initialization if we're resuming from saved state
-    if (resumeState) return;
+    if (isFirebaseGame || resumeState || !currentUserId) return;
 
-    // Initialize local game
     const deck = shufflePhase10Deck(createPhase10Deck());
     const { player1Hand, player2Hand, remaining } = dealPhase10Cards(deck);
 
@@ -56,7 +84,7 @@ export const Phase10Screen: React.FC<Phase10ScreenProps> = ({ gameId, playerId, 
     const initialState: Phase10GameState = {
       id: gameId,
       player1: {
-        id: playerId,
+        id: currentUserId,
         name: 'You',
         hand: player1Hand,
         currentPhase: 1,
