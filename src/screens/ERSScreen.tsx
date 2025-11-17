@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Alert,
   Animated as RNAnimated,
+  Dimensions,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -16,6 +17,7 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import { CardComponent } from '../components/CardComponent';
+import { SlapFeedbackAnimation } from '../components/SlapFeedbackAnimation';
 import { ERSGameState } from '../types/ers';
 import { Card } from '../types/game';
 import {
@@ -38,6 +40,12 @@ export const ERSScreen: React.FC<ERSScreenProps> = ({ gameId, playerId, onExit }
   const [lastCardPlayedTime, setLastCardPlayedTime] = useState<number | null>(null);
   const [fastestSlap, setFastestSlap] = useState<number | null>(null);
   const [lastSlapTime, setLastSlapTime] = useState<number | null>(null);
+
+  // Slap animation state
+  const [slapAnimActive, setSlapAnimActive] = useState(false);
+  const [slapAnimSuccess, setSlapAnimSuccess] = useState(false);
+  const [slapAnimMessage, setSlapAnimMessage] = useState('');
+  const [slapAnimCounter, setSlapAnimCounter] = useState(0);
 
   const pileScale = useSharedValue(1);
   const slapScale = useSharedValue(0);
@@ -355,20 +363,27 @@ export const ERSScreen: React.FC<ERSScreenProps> = ({ gameId, playerId, onExit }
       ]).start();
 
       // Update fastest slap if this is faster
-      let feedbackText = `✅ ${formatSlapRules(slapCheck.rules)}!`;
+      let feedbackText = `${formatSlapRules(slapCheck.rules)}!`;
       if (reactionTime !== null) {
         setLastSlapTime(reactionTimeMs!);
 
         if (fastestSlap === null || reactionTimeMs! < fastestSlap) {
           setFastestSlap(reactionTimeMs!);
-          feedbackText += ` ⚡ NEW RECORD: ${reactionTime.toFixed(3)}s`;
+          feedbackText += ` ⚡ ${reactionTime.toFixed(3)}s`;
         } else {
-          feedbackText += ` ⏱️ ${reactionTime.toFixed(3)}s`;
+          feedbackText += ` ${reactionTime.toFixed(3)}s`;
         }
       }
 
       setSlapFeedback(feedbackText);
       setTimeout(() => setSlapFeedback(''), 2000);
+
+      // Trigger slap feedback animation
+      setSlapAnimSuccess(true);
+      setSlapAnimMessage(feedbackText);
+      setSlapAnimActive(true);
+      setSlapAnimCounter((prev) => prev + 1);
+      setTimeout(() => setSlapAnimActive(false), 1600);
 
       // Give player the pile
       const updatedState: ERSGameState = {
@@ -407,6 +422,13 @@ export const ERSScreen: React.FC<ERSScreenProps> = ({ gameId, playerId, onExit }
 
       setSlapFeedback('❌ Bad slap! Penalty!');
       setTimeout(() => setSlapFeedback(''), 2000);
+
+      // Trigger slap feedback animation
+      setSlapAnimSuccess(false);
+      setSlapAnimMessage('Bad Slap!');
+      setSlapAnimActive(true);
+      setSlapAnimCounter((prev) => prev + 1);
+      setTimeout(() => setSlapAnimActive(false), 1600);
 
       if (currentPlayer.deck.length > 0) {
         const penaltyCard = currentPlayer.deck[0];
@@ -596,6 +618,16 @@ export const ERSScreen: React.FC<ERSScreenProps> = ({ gameId, playerId, onExit }
       <TouchableOpacity style={styles.exitButton} onPress={onExit}>
         <Text style={styles.buttonText}>Exit Game</Text>
       </TouchableOpacity>
+
+      {/* Slap Feedback Animation */}
+      <SlapFeedbackAnimation
+        key={slapAnimCounter}
+        active={slapAnimActive}
+        success={slapAnimSuccess}
+        message={slapAnimMessage}
+        x={Dimensions.get('window').width / 2}
+        y={Dimensions.get('window').height / 2}
+      />
     </View>
   );
 };
