@@ -6,6 +6,7 @@ const KEYS = {
   GAME_SESSION: '@game_session',
   PLAYER_STATS: '@player_stats',
   SETTINGS: '@settings',
+  LAST_SESSION: '@last_session',
 };
 
 export interface GameSession {
@@ -13,6 +14,10 @@ export interface GameSession {
   playerId: string;
   gameType: 'war' | 'ers';
   timestamp: number;
+}
+
+export interface LastSession extends GameSession {
+  playerName?: string;
 }
 
 export interface PlayerStats {
@@ -65,6 +70,32 @@ export const clearGameSession = async (): Promise<void> => {
     await AsyncStorage.removeItem(KEYS.GAME_SESSION);
   } catch (error) {
     console.error('Error clearing game session:', error);
+  }
+};
+
+export const saveLastSession = async (session: LastSession): Promise<void> => {
+  try {
+    await AsyncStorage.setItem(KEYS.LAST_SESSION, JSON.stringify(session));
+  } catch (error) {
+    console.warn('Unable to persist last session', error);
+  }
+};
+
+export const getLastSession = async (): Promise<LastSession | null> => {
+  try {
+    const raw = await AsyncStorage.getItem(KEYS.LAST_SESSION);
+    return raw ? (JSON.parse(raw) as LastSession) : null;
+  } catch (error) {
+    console.warn('Unable to load last session', error);
+    return null;
+  }
+};
+
+export const clearLastSession = async (): Promise<void> => {
+  try {
+    await AsyncStorage.removeItem(KEYS.LAST_SESSION);
+  } catch (error) {
+    console.warn('Unable to clear last session', error);
   }
 };
 
