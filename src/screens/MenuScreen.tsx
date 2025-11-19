@@ -8,6 +8,7 @@ import {
   Modal,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -19,12 +20,30 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { GameRoom } from '../types/game';
-import { getAvailableRooms, createGameRoom, joinGameRoom } from '../utils/firebaseService';
+import {
+  getAvailableRooms,
+  createGameRoom,
+  joinGameRoom,
+  getGameState,
+} from '../utils/firebaseService';
 import { registerForPushNotificationsAsync } from '../utils/notificationService';
+import {
+  clearLastSession,
+  getLastSession,
+  getPlayerName,
+  LastSession,
+  saveLastSession,
+  savePlayerName,
+} from '../utils/storageService';
 import { database } from '../config/firebase';
 
 interface MenuScreenProps {
-  onStartGame: (gameId: string, playerId: string, gameType: 'war' | 'ers') => void;
+  onStartGame: (
+    gameId: string,
+    playerId: string,
+    gameType: 'war' | 'ers',
+    options?: { sixSevenRule?: boolean }
+  ) => void;
 }
 
 export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
@@ -38,6 +57,10 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
   const [availableRooms, setAvailableRooms] = useState<GameRoom[]>([]);
   const [roomCode, setRoomCode] = useState('');
   const [gameType, setGameType] = useState<'war' | 'ers'>('war');
+  const [lastSession, setLastSession] = useState<LastSession | null>(null);
+  const [loadingRooms, setLoadingRooms] = useState(false);
+  const [resuming, setResuming] = useState(false);
+  const canUseFirebase = Boolean(database);
 
   const titleScale = useSharedValue(1);
   const titleRotate = useSharedValue(0);
@@ -57,7 +80,20 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
     registerForPushNotificationsAsync().then(token => {
       if (token) setPushToken(token);
     });
+
+    getLastSession().then(setLastSession);
+    getPlayerName().then((storedName) => {
+      if (storedName) {
+        setPlayerName(storedName);
+      }
+    });
   }, []);
+
+  useEffect(() => {
+    if (playerName.trim()) {
+      savePlayerName(playerName.trim());
+    }
+  }, [playerName]);
 
   const titleAnimatedStyle = useAnimatedStyle(() => {
     return {
@@ -65,12 +101,25 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
     };
   });
 
+  const persistSession = async (gameId: string, type: 'war' | 'ers') => {
+    const session: LastSession = {
+      gameId,
+      gameType: type,
+      playerId,
+      playerName: playerName || undefined,
+      timestamp: Date.now(),
+    };
+
+    await saveLastSession(session);
+    setLastSession(session);
+  };
+
   const handleCreateGame = async (type: 'war' | 'ers') => {
     // Check if Firebase is available
     if (!database) {
       // Start local game without Firebase - no name required
       const gameId = `local_${Date.now()}`;
-      onStartGame(gameId, playerId, type);
+      onStartGame(gameId, playerId, type, { sixSevenRule });
       return;
     }
 
@@ -82,24 +131,43 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
 
     try {
       const gameId = await createGameRoom(playerId, playerName, sixSevenRule, pushToken);
-      onStartGame(gameId, playerId, type);
+      await persistSession(gameId, type);
+      onStartGame(gameId, playerId, type, { sixSevenRule });
     } catch (error) {
       Alert.alert('Error', 'Failed to create game');
     }
   };
 
   const handleJoinGame = async (roomId: string) => {
+    if (!canUseFirebase) {
+      Alert.alert('Offline', 'Connect to the internet to join an online room.');
+      return;
+    }
+
     if (!playerName.trim()) {
       Alert.alert('Error', 'Please enter your name');
       return;
     }
 
+    if (!roomId.trim()) {
+      Alert.alert('Error', 'Please enter a room code');
+      return;
+    }
+
     try {
-      const success = await joinGameRoom(roomId, playerId, playerName, pushToken);
-      if (success) {
+      const result = await joinGameRoom(roomId, playerId, playerName, pushToken);
+      if (result.success) {
+        await persistSession(roomId, gameType);
+        setShowJoinMenu(false);
         onStartGame(roomId, playerId, gameType);
       } else {
-        Alert.alert('Error', 'Failed to join game. Room may be full.');
+        const reason =
+          result.reason === 'not_found'
+            ? 'Room not found. Please check the code.'
+            : result.reason === 'full'
+              ? 'Room is already full.'
+              : 'Game is not accepting new players.';
+        Alert.alert('Error', reason);
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to join game');
@@ -107,11 +175,19 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
   };
 
   const loadAvailableRooms = async () => {
+    if (!canUseFirebase) {
+      Alert.alert('Offline', 'Connect to the internet to browse rooms.');
+      return;
+    }
+
     try {
+      setLoadingRooms(true);
       const rooms = await getAvailableRooms();
       setAvailableRooms(rooms);
     } catch (error) {
       Alert.alert('Error', 'Failed to load rooms');
+    } finally {
+      setLoadingRooms(false);
     }
   };
 
@@ -119,6 +195,36 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
     setGameType(type);
     await loadAvailableRooms();
     setShowJoinMenu(true);
+  };
+
+  const handleResumeGame = async () => {
+    if (!lastSession) return;
+
+    if (!database) {
+      Alert.alert('Offline', 'Reconnect to the internet to resume an online game.');
+      return;
+    }
+
+    setResuming(true);
+    try {
+      const existingGame = await getGameState(lastSession.gameId);
+      const isParticipant =
+        existingGame &&
+        (existingGame.player1.id === lastSession.playerId || existingGame.player2?.id === lastSession.playerId);
+
+      if (!existingGame || !isParticipant) {
+        Alert.alert('Session ended', 'This game could not be found.');
+        await clearLastSession();
+        setLastSession(null);
+        return;
+      }
+
+      onStartGame(lastSession.gameId, lastSession.playerId, lastSession.gameType);
+    } catch (error) {
+      Alert.alert('Error', 'Unable to resume your previous game right now.');
+    } finally {
+      setResuming(false);
+    }
   };
 
   return (
@@ -144,7 +250,44 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
         <Animated.View style={titleAnimatedStyle}>
           <Text style={styles.title}>🎴 CARD WARS 🎴</Text>
           <Text style={styles.subtitle}>Premium Card Gaming</Text>
+          <View style={[styles.statusPill, canUseFirebase ? styles.statusOnline : styles.statusOffline]}>
+            <Text style={styles.statusText}>
+              {canUseFirebase ? 'Online play ready' : 'Offline mode: local games only'}
+            </Text>
+          </View>
         </Animated.View>
+
+        {lastSession && (
+          <View style={styles.resumeCard}>
+            <Text style={styles.resumeTitle}>Resume your last game</Text>
+            <Text style={styles.resumeMeta}>
+              {lastSession.gameType.toUpperCase()} • Room {lastSession.gameId.slice(0, 8)}...
+            </Text>
+            <View style={styles.resumeActions}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.resumeButton]}
+                onPress={handleResumeGame}
+                disabled={resuming}
+              >
+                {resuming ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.modalButtonText}>Resume</Text>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.secondaryButton, styles.resumeButton, { marginRight: 0 }]}
+                onPress={async () => {
+                  await clearLastSession();
+                  setLastSession(null);
+                }}
+                disabled={resuming}
+              >
+                <Text style={styles.modalButtonText}>Clear</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
 
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Your Name <Text style={styles.optional}>(for online play)</Text></Text>
@@ -155,6 +298,9 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
             value={playerName}
             onChangeText={setPlayerName}
           />
+          {canUseFirebase && !playerName.trim() && (
+            <Text style={styles.helperText}>Name required for online multiplayer</Text>
+          )}
         </View>
 
         <View style={styles.buttonContainer}>
@@ -197,6 +343,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
 
             <TouchableOpacity
               style={styles.modalButton}
+              disabled={canUseFirebase && !playerName.trim()}
               onPress={() => {
                 setShowWarMenu(false);
                 handleCreateGame('war');
@@ -277,7 +424,8 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
                 placeholder="Enter room code"
                 placeholderTextColor="#64748B"
                 value={roomCode}
-                onChangeText={setRoomCode}
+                autoCapitalize="characters"
+                onChangeText={(value) => setRoomCode(value.replace(/\s+/g, '').toUpperCase())}
               />
               <TouchableOpacity
                 style={styles.smallButton}
@@ -289,7 +437,9 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
 
             <Text style={styles.modalTitle}>Available Rooms</Text>
             <ScrollView style={styles.roomsList}>
-              {availableRooms.length === 0 ? (
+              {loadingRooms ? (
+                <ActivityIndicator style={{ marginVertical: 12 }} color="#F59E0B" />
+              ) : availableRooms.length === 0 ? (
                 <Text style={styles.noRoomsText}>No available rooms</Text>
               ) : (
                 availableRooms.map((room) => (
@@ -363,6 +513,50 @@ const styles = StyleSheet.create({
     marginBottom: 40,
     fontStyle: 'italic',
   },
+  statusPill: {
+    alignSelf: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 999,
+    marginTop: 8,
+  },
+  statusOnline: {
+    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+  },
+  statusOffline: {
+    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+  },
+  statusText: {
+    color: '#E2E8F0',
+    fontWeight: '600',
+  },
+  resumeCard: {
+    backgroundColor: '#1E293B',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  resumeTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#F59E0B',
+    marginBottom: 4,
+  },
+  resumeMeta: {
+    fontSize: 14,
+    color: '#E2E8F0',
+    marginBottom: 12,
+  },
+  resumeActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  resumeButton: {
+    flex: 1,
+    marginRight: 12,
+  },
   inputContainer: {
     marginBottom: 30,
   },
@@ -385,6 +579,11 @@ const styles = StyleSheet.create({
     padding: 16,
     fontSize: 18,
     color: '#FFFFFF',
+  },
+  helperText: {
+    color: '#FBBF24',
+    marginTop: 8,
+    fontSize: 14,
   },
   buttonContainer: {
     gap: 16,

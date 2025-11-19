@@ -31,6 +31,7 @@ export interface GameState {
   lastAction: string;
   lastActionTime: number;
   winner: string | null;
+  pendingPlayer2Deck?: Card[] | null;
 }
 
 export interface GameRoom {

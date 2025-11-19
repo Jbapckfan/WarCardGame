@@ -6,6 +6,8 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
@@ -113,6 +115,12 @@ export const scheduleLocalNotification = async (
       body,
       sound: true,
     },
-    trigger: seconds > 0 ? { seconds } : null,
+    trigger:
+      seconds > 0
+        ? {
+            seconds,
+            type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+          }
+        : null,
   });
 };

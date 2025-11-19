@@ -9,18 +9,20 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CardComponent } from '../components/CardComponent';
-import { GameState } from '../types/game';
+import { Card, GameState } from '../types/game';
 import { listenToGameState, updateGameState } from '../utils/firebaseService';
 import { playRound, resolveWar } from '../utils/gameLogic';
-import { sendPushNotification, sendRichGameNotification } from '../utils/notificationService';
+import { sendPushNotification, sendReminderNotification, sendRichGameNotification } from '../utils/notificationService';
+import { clearLastSession, saveLastSession } from '../utils/storageService';
 
 interface GameScreenProps {
   gameId: string;
   playerId: string;
   onExit: () => void;
+  sixSevenRuleOverride?: boolean;
 }
 
-export const GameScreen: React.FC<GameScreenProps> = ({ gameId, playerId, onExit }) => {
+export const GameScreen: React.FC<GameScreenProps> = ({ gameId, playerId, onExit, sixSevenRuleOverride }) => {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [isPlayingCard, setIsPlayingCard] = useState(false);
   const [lastPlayedCards, setLastPlayedCards] = useState<{
@@ -62,7 +64,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameId, playerId, onExit
           },
           currentTurn: playerId,
           gameStatus: 'playing',
-          sixSevenRuleEnabled: true,
+          sixSevenRuleEnabled: sixSevenRuleOverride ?? true,
           warState: null,
           lastAction: 'Game started',
           lastActionTime: Date.now(),
@@ -81,6 +83,25 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameId, playerId, onExit
     return () => unsubscribe();
   }, [gameId]);
 
+  useEffect(() => {
+    if (!gameState || gameId.startsWith('local_')) return;
+    if (!gameState.player2) return;
+
+    const participant = gameState.player1.id === playerId ? gameState.player1 : gameState.player2;
+
+    saveLastSession({
+      gameId,
+      playerId,
+      gameType: 'war',
+      playerName: participant?.name,
+      timestamp: Date.now(),
+    });
+
+    if (gameState.gameStatus === 'finished') {
+      clearLastSession();
+    }
+  }, [gameState, gameId, playerId]);
+
   if (!gameState || !gameState.player2) {
     return (
       <View style={styles.container}>
@@ -98,30 +119,46 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameId, playerId, onExit
   const opponent = isPlayer1 ? gameState.player2 : gameState.player1;
   const isMyTurn = gameState.currentTurn === playerId;
 
+  useEffect(() => {
+    if (!gameState || gameId.startsWith('local_')) return;
+    if (!gameState.player2 || gameState.gameStatus !== 'playing') return;
+
+    const isMyTurnNow = gameState.currentTurn === playerId;
+    if (isMyTurnNow) return;
+
+    const opponentRecord = gameState.player1.id === playerId ? gameState.player2 : gameState.player1;
+    if (!opponentRecord?.pushToken) return;
+
+    const msSinceLastMove = Date.now() - gameState.lastActionTime;
+    const reminderDelay = Math.max(60000 - msSinceLastMove, 0); // wait up to 60s since last action
+
+    const timeout = setTimeout(() => {
+      const hours = Math.max(1, Math.round(msSinceLastMove / 3600000));
+      sendReminderNotification(opponentRecord.pushToken!, currentPlayer.name, hours);
+    }, reminderDelay);
+
+    return () => clearTimeout(timeout);
+  }, [gameState, gameId, playerId, currentPlayer.name]);
+
   // Helper to update game state (Firebase or local)
-  const updateGame = async (updates: Partial<GameState>) => {
+  const updateGame = async (
+    updates: Partial<GameState> & { 'player1.deck'?: Card[]; 'player2.deck'?: Card[] }
+  ) => {
     if (gameId.startsWith('local_')) {
       // Local mode - update state directly with proper nested updates
       setGameState((prev) => {
         if (!prev) return prev;
-        
-        const newState = { ...prev };
-        
-        // Handle dot notation for nested properties
-        Object.keys(updates).forEach(key => {
-          if (key.includes('.')) {
-            const [parent, child] = key.split('.');
-            if (parent === 'player1' && child === 'deck') {
-              newState.player1 = { ...newState.player1, deck: updates[key] as any };
-            } else if (parent === 'player2' && child === 'deck') {
-              newState.player2 = { ...newState.player2!, deck: updates[key] as any };
-            }
-          } else {
-            (newState as any)[key] = (updates as any)[key];
-          }
-        });
-        
-        return newState;
+
+        const { ['player1.deck']: player1DeckUpdate, ['player2.deck']: player2DeckUpdate, ...rest } = updates;
+
+        const nextState: GameState = {
+          ...prev,
+          ...(rest as Partial<GameState>),
+          player1: player1DeckUpdate ? { ...prev.player1, deck: player1DeckUpdate } : prev.player1,
+          player2: player2DeckUpdate ? { ...prev.player2!, deck: player2DeckUpdate } : prev.player2,
+        };
+
+        return nextState;
       });
     } else {
       // Firebase mode
@@ -172,7 +209,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameId, playerId, onExit
         // Clear face-down cards and prepare for next round
         setWarFaceDownCards(0);
 
-        const updates: Partial<GameState> = {
+        const updates: Parameters<typeof updateGame>[0] = {
           'player1.deck': warResult.player1NewDeck,
           'player2.deck': warResult.player2NewDeck,
           warState: null,
@@ -239,7 +276,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameId, playerId, onExit
             player2BattleCard: null,
           });
 
-          const updates: Partial<GameState> = {
+          const updates: Parameters<typeof updateGame>[0] = {
             'player1.deck': result.player1NewDeck,
             'player2.deck': result.player2NewDeck,
             warState: {
@@ -267,7 +304,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameId, playerId, onExit
           }
         } else {
           // First update: show the result but keep cards visible
-          const immediateUpdates: Partial<GameState> = {
+          const immediateUpdates: Parameters<typeof updateGame>[0] = {
             'player1.deck': result.player1NewDeck,
             'player2.deck': result.player2NewDeck,
             lastAction: `${result.winner === player1.id ? player1.name : player2.name} won the round`,
@@ -369,8 +406,16 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameId, playerId, onExit
                 <View style={styles.faceDownCardsContainer}>
                   {Array.from({ length: warFaceDownCards }).map((_, i) => (
                     <View key={i} style={styles.faceDownCardPair}>
-                      <CardComponent card={{ rank: 1, suit: 'spades' }} faceDown scale={0.5} />
-                      <CardComponent card={{ rank: 1, suit: 'spades' }} faceDown scale={0.5} />
+                      <CardComponent
+                        card={{ rank: 2, suit: 'spades', id: `p1-facedown-${i}` }}
+                        faceDown
+                        scale={0.5}
+                      />
+                      <CardComponent
+                        card={{ rank: 2, suit: 'spades', id: `p2-facedown-${i}` }}
+                        faceDown
+                        scale={0.5}
+                      />
                     </View>
                   ))}
                 </View>

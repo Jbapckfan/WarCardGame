@@ -7,16 +7,22 @@ import { ERSScreen } from './src/screens/ERSScreen';
 
 type GameType = 'war' | 'ers' | null;
 
+interface StartOptions {
+  sixSevenRule?: boolean;
+}
+
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<'menu' | 'game'>('menu');
   const [gameId, setGameId] = useState<string | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [gameType, setGameType] = useState<GameType>(null);
+  const [options, setOptions] = useState<StartOptions | undefined>();
 
-  const handleStartGame = (id: string, pId: string, type: GameType) => {
+  const handleStartGame = (id: string, pId: string, type: GameType, options?: StartOptions) => {
     setGameId(id);
     setPlayerId(pId);
     setGameType(type);
+    setOptions(options);
     setCurrentScreen('game');
   };
 
@@ -25,6 +31,7 @@ export default function App() {
     setGameId(null);
     setPlayerId(null);
     setGameType(null);
+    setOptions(undefined);
   };
 
   return (
@@ -36,7 +43,12 @@ export default function App() {
         gameType === 'ers' ? (
           <ERSScreen gameId={gameId} playerId={playerId} onExit={handleExitGame} />
         ) : (
-          <GameScreen gameId={gameId} playerId={playerId} onExit={handleExitGame} />
+          <GameScreen
+            gameId={gameId}
+            playerId={playerId}
+            onExit={handleExitGame}
+            sixSevenRuleOverride={options?.sixSevenRule}
+          />
         )
       ) : null}
     </SafeAreaView>

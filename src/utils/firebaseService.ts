@@ -1,7 +1,15 @@
 import { database } from '../config/firebase';
-import { ref, push, set, onValue, off, update, remove, get } from 'firebase/database';
+import { ref, push, set, onValue, off, update, remove, get, Database } from 'firebase/database';
 import { GameState, GameRoom, Player, Card } from '../types/game';
 import { createDeck, shuffleDeck, splitDeck } from './cardUtils';
+import { sendPushNotification } from './notificationService';
+
+const ensureDatabase = (): Database => {
+  if (!database) {
+    throw new Error('Firebase is not configured.');
+  }
+  return database;
+};
 
 export const createGameRoom = async (
   playerId: string,
@@ -9,12 +17,13 @@ export const createGameRoom = async (
   sixSevenRuleEnabled: boolean,
   pushToken?: string
 ): Promise<string> => {
-  const roomsRef = ref(database, 'rooms');
+  const db = ensureDatabase();
+  const roomsRef = ref(db, 'rooms');
   const newRoomRef = push(roomsRef);
   const roomId = newRoomRef.key!;
 
   const deck = shuffleDeck(createDeck());
-  const [player1Deck] = splitDeck(deck);
+  const [player1Deck, player2Deck] = splitDeck(deck);
 
   const gameRoom: GameRoom = {
     id: roomId,
@@ -40,35 +49,43 @@ export const createGameRoom = async (
     lastAction: 'Game created',
     lastActionTime: Date.now(),
     winner: null,
+    pendingPlayer2Deck: player2Deck,
   };
 
-  await set(ref(database, `rooms/${roomId}`), gameRoom);
-  await set(ref(database, `games/${roomId}`), initialGameState);
+  await set(ref(db, `rooms/${roomId}`), gameRoom);
+  await set(ref(db, `games/${roomId}`), initialGameState);
 
   return roomId;
 };
+
+type JoinGameResult =
+  | { success: true; gameState: GameState }
+  | { success: false; reason: 'not_found' | 'full' | 'invalid_status' };
 
 export const joinGameRoom = async (
   roomId: string,
   playerId: string,
   playerName: string,
   pushToken?: string
-): Promise<boolean> => {
-  const gameRef = ref(database, `games/${roomId}`);
+): Promise<JoinGameResult> => {
+  const db = ensureDatabase();
+  const gameRef = ref(db, `games/${roomId}`);
   const gameSnapshot = await get(gameRef);
 
   if (!gameSnapshot.exists()) {
-    return false;
+    return { success: false, reason: 'not_found' };
   }
 
   const gameState: GameState = gameSnapshot.val();
 
   if (gameState.player2 !== null || gameState.gameStatus !== 'waiting') {
-    return false;
+    return { success: false, reason: gameState.player2 !== null ? 'full' : 'invalid_status' };
   }
 
-  const deck = shuffleDeck(createDeck());
-  const [, player2Deck] = splitDeck(deck);
+  const [, fallbackPlayer2Deck] = splitDeck(shuffleDeck(createDeck()));
+  const player2Deck = gameState.pendingPlayer2Deck?.length
+    ? gameState.pendingPlayer2Deck
+    : fallbackPlayer2Deck;
 
   await update(gameRef, {
     player2: {
@@ -80,13 +97,26 @@ export const joinGameRoom = async (
     gameStatus: 'playing',
     lastAction: `${playerName} joined the game`,
     lastActionTime: Date.now(),
+    pendingPlayer2Deck: null,
   });
 
-  await update(ref(database, `rooms/${roomId}`), {
+  await update(ref(db, `rooms/${roomId}`), {
     playerCount: 2,
   });
 
-  return true;
+  if (gameState.player1.pushToken) {
+    await sendPushNotification(
+      gameState.player1.pushToken,
+      'A player joined your game',
+      `${playerName} is ready to battle in WAR!`,
+      { roomId }
+    );
+  }
+
+  const updatedSnapshot = await get(gameRef);
+  const updatedGameState: GameState = updatedSnapshot.val();
+
+  return { success: true, gameState: updatedGameState };
 };
 
 export const listenToGameState = (
@@ -111,9 +141,10 @@ export const listenToGameState = (
 
 export const updateGameState = async (
   gameId: string,
-  updates: Partial<GameState>
+  updates: Partial<GameState> & Record<string, unknown>
 ): Promise<void> => {
-  const gameRef = ref(database, `games/${gameId}`);
+  const db = ensureDatabase();
+  const gameRef = ref(db, `games/${gameId}`);
   await update(gameRef, updates);
 };
 
@@ -123,7 +154,8 @@ export const playCard = async (
   card: Card,
   newDeck: Card[]
 ): Promise<void> => {
-  const gameRef = ref(database, `games/${gameId}`);
+  const db = ensureDatabase();
+  const gameRef = ref(db, `games/${gameId}`);
   const gameSnapshot = await get(gameRef);
   const gameState: GameState = gameSnapshot.val();
 
@@ -139,7 +171,8 @@ export const playCard = async (
 };
 
 export const getAvailableRooms = async (): Promise<GameRoom[]> => {
-  const roomsRef = ref(database, 'rooms');
+  const db = ensureDatabase();
+  const roomsRef = ref(db, 'rooms');
   const snapshot = await get(roomsRef);
 
   if (!snapshot.exists()) {
@@ -158,6 +191,19 @@ export const getAvailableRooms = async (): Promise<GameRoom[]> => {
 };
 
 export const deleteGame = async (gameId: string): Promise<void> => {
-  await remove(ref(database, `games/${gameId}`));
-  await remove(ref(database, `rooms/${gameId}`));
+  const db = ensureDatabase();
+  await remove(ref(db, `games/${gameId}`));
+  await remove(ref(db, `rooms/${gameId}`));
+};
+
+export const getGameState = async (gameId: string): Promise<GameState | null> => {
+  const db = ensureDatabase();
+  const gameRef = ref(db, `games/${gameId}`);
+  const snapshot = await get(gameRef);
+
+  if (!snapshot.exists()) {
+    return null;
+  }
+
+  return snapshot.val();
 };
