@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -135,13 +135,14 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameId, playerId, onExit
     );
   }
 
-  const isPlayer1 = gameState.player1.id === playerId;
-  const currentPlayer = isPlayer1 ? gameState.player1 : gameState.player2;
-  const opponent = isPlayer1 ? gameState.player2 : gameState.player1;
-  const isMyTurn = gameState.currentTurn === playerId;
+  // Memoize computed values to prevent re-calculation on every render
+  const isPlayer1 = useMemo(() => gameState.player1.id === playerId, [gameState.player1.id, playerId]);
+  const currentPlayer = useMemo(() => isPlayer1 ? gameState.player1 : gameState.player2, [isPlayer1, gameState.player1, gameState.player2]);
+  const opponent = useMemo(() => isPlayer1 ? gameState.player2 : gameState.player1, [isPlayer1, gameState.player1, gameState.player2]);
+  const isMyTurn = useMemo(() => gameState.currentTurn === playerId, [gameState.currentTurn, playerId]);
 
   // Helper to update game state (Firebase or local)
-  const updateGame = async (updates: Partial<GameState>) => {
+  const updateGame = useCallback(async (updates: Partial<GameState>) => {
     if (gameId.startsWith('local_')) {
       // Local mode - update state directly with proper nested updates
       setGameState((prev) => {
@@ -169,9 +170,9 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameId, playerId, onExit
       // Firebase mode
       await updateGameState(gameId, updates);
     }
-  };
+  }, [gameId]);
 
-  const handlePlayCard = async () => {
+  const handlePlayCard = useCallback(async () => {
     // For local AI games, allow playing anytime (AI responds instantly)
     const isLocalGame = gameId.startsWith('local_');
     if (!isLocalGame && (!isMyTurn || isPlayingCard || gameState.gameStatus !== 'playing')) return;
@@ -362,7 +363,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameId, playerId, onExit
     } finally {
       setIsPlayingCard(false);
     }
-  };
+  }, [gameId, isMyTurn, isPlayingCard, gameState, currentPlayer, opponent, updateGame, timeoutRefs, lastPlayedCards]);
 
   if (gameState.gameStatus === 'finished') {
     const didIWin = gameState.winner === playerId;
