@@ -26,7 +26,7 @@ const CARD_SIZES = {
   large: { width: 100, height: 150, fontSize: 24, suitSize: 70 },
 };
 
-export const CardComponent: React.FC<CardComponentProps> = ({
+const CardComponentBase: React.FC<CardComponentProps> = ({
   card,
   faceDown = false,
   faceUp = false,
@@ -102,6 +102,18 @@ export const CardComponent: React.FC<CardComponentProps> = ({
     </Animated.View>
   );
 };
+
+// Memoize to prevent unnecessary re-renders when rendering many cards
+export const CardComponent = React.memo(CardComponentBase, (prevProps, nextProps) => {
+  return (
+    prevProps.card.id === nextProps.card.id &&
+    prevProps.faceDown === nextProps.faceDown &&
+    prevProps.faceUp === nextProps.faceUp &&
+    prevProps.animated === nextProps.animated &&
+    prevProps.scale === nextProps.scale &&
+    prevProps.size === nextProps.size
+  );
+});
 
 const styles = StyleSheet.create({
   cardContainer: {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -50,6 +50,17 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameId, playerId, onExit
 
   const screenWidth = Dimensions.get('window').width;
   const screenHeight = Dimensions.get('window').height;
+
+  // Refs for cleanup
+  const timeoutRefs = useRef<NodeJS.Timeout[]>([]);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      timeoutRefs.current.forEach(clearTimeout);
+      timeoutRefs.current = [];
+    };
+  }, []);
 
   useEffect(() => {
     // Check if this is a local game
@@ -221,9 +232,9 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameId, playerId, onExit
         }
 
         await updateGame(updates);
-        
+
         // Auto-clear war result after showing
-        setTimeout(() => {
+        const timeoutId = setTimeout(() => {
           if (lastPlayedCards) {
             setPreviousPlayedCards({
               ...lastPlayedCards,
@@ -232,6 +243,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameId, playerId, onExit
             setLastPlayedCards(null);
           }
         }, 1000); // 1 second to see the war result
+        timeoutRefs.current.push(timeoutId);
 
         // Send rich notification
         if (opponent.pushToken) {
@@ -322,7 +334,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameId, playerId, onExit
           await updateGame(immediateUpdates);
 
           // Auto-clear cards after showing result
-          setTimeout(() => {
+          const timeoutId = setTimeout(() => {
             setPreviousPlayedCards({
               player1Card: p1Card,
               player2Card: p2Card,
@@ -330,6 +342,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameId, playerId, onExit
             });
             setLastPlayedCards(null);
           }, 1000); // 1 second to see the result
+          timeoutRefs.current.push(timeoutId);
 
           // Send rich notification
           if (opponent.pushToken) {

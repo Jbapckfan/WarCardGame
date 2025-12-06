@@ -25,21 +25,13 @@ export const rateLimitSlap = (playerId: string): boolean => {
   recentAttempts.push(now);
   slapAttempts.set(playerId, recentAttempts);
 
+  // Clean up empty entries to prevent memory leaks
+  if (recentAttempts.length === 0) {
+    slapAttempts.delete(playerId);
+  }
+
   return true; // Allowed
 };
-
-// Clear rate limit data periodically
-setInterval(() => {
-  const now = Date.now();
-  slapAttempts.forEach((attempts, playerId) => {
-    const recentAttempts = attempts.filter(time => now - time < SLAP_RATE_WINDOW_MS);
-    if (recentAttempts.length === 0) {
-      slapAttempts.delete(playerId);
-    } else {
-      slapAttempts.set(playerId, recentAttempts);
-    }
-  });
-}, 5000);
 
 /**
  * Handle War with insufficient cards
